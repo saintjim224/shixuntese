@@ -1,11 +1,14 @@
 :root {
   color-scheme: light;
-  --bg: #f0f4f8;
-  --bg-grid: rgba(0, 179, 138, 0.07);
+  --bg: #f4f7fb;
+  --bg-grid: rgba(0, 43, 92, 0.045);
   --surface: #ffffff;
   --surface-soft: #eef5ff;
   --surface-muted: #f8fafc;
-  --surface-strong: #101828;
+  --surface-strong: #001f3f;
+  --navy: #001f3f;
+  --navy-soft: #053861;
+  --navy-muted: #d8e7f8;
   --text: #172033;
   --text-secondary: #344054;
   --muted: #667085;
@@ -37,7 +40,7 @@
   --shadow-lg: 0 24px 64px rgba(15, 47, 92, 0.18);
   --radius: 8px;
   --radius-lg: 8px;
-  --header-bg: rgba(255, 255, 255, 0.92);
+  --header-bg: #001f3f;
   font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
 }
 
@@ -1488,5 +1491,247 @@ a:focus-visible,
 
   .resume-preview {
     padding: 24px;
+  }
+}
+
+/* Stitch alignment layer */
+body {
+  background:
+    linear-gradient(180deg, rgba(0, 31, 63, 0.08) 0, rgba(244, 247, 251, 0) 260px),
+    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px),
+    linear-gradient(180deg, var(--bg-grid) 1px, transparent 1px),
+    var(--bg);
+  background-size: auto, 40px 40px, 40px 40px, auto;
+}
+
+.site-header {
+  background:
+    linear-gradient(90deg, #001f3f 0%, #052f5f 60%, #04365f 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 30px rgba(0, 31, 63, 0.18);
+}
+
+.header-inner {
+  min-height: 68px;
+}
+
+.site-header .brand-link,
+.site-header .main-nav a,
+.site-header .icon-button,
+.site-header .ant-btn-text,
+.site-header .user-pill {
+  color: #eaf2ff;
+}
+
+.site-header .brand-link strong {
+  color: #fff;
+}
+
+.site-header .brand-link small {
+  color: #a9bfd9;
+}
+
+.site-header .brand-mark {
+  background: #fff;
+  color: var(--primary);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.site-header .main-nav a {
+  border: 1px solid transparent;
+}
+
+.site-header .main-nav a.active,
+.site-header .main-nav a:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.site-header .icon-button:hover,
+.site-header .ant-btn-text:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #fff !important;
+}
+
+.site-header .user-pill {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.page-shell {
+  max-width: 1240px;
+  padding-top: 28px;
+}
+
+.enterprise-hero,
+.page-hero {
+  position: relative;
+  overflow: hidden;
+  border: 0;
+  background:
+    linear-gradient(135deg, rgba(0, 31, 63, 0.98), rgba(5, 56, 97, 0.94)),
+    var(--navy);
+  color: #fff;
+  box-shadow: 0 22px 50px rgba(0, 31, 63, 0.18);
+}
+
+.enterprise-hero {
+  padding: 0;
+  border-radius: var(--radius);
+}
+
+.hero-copy {
+  border: 0;
+  background:
+    linear-gradient(135deg, rgba(0, 31, 63, 0.96), rgba(5, 56, 97, 0.9));
+  color: #fff;
+  box-shadow: none;
+}
+
+.hero-copy::before {
+  width: 4px;
+  background: var(--primary);
+}
+
+.hero-copy::after {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.hero-copy h1,
+.page-hero h1 {
+  color: #fff;
+}
+
+.hero-copy p,
+.page-hero p {
+  color: #c8d7e8;
+}
+
+.eyebrow {
+  color: #62e7c8;
+}
+
+.search-console {
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.search-console .ant-input-affix-wrapper,
+.search-console .ant-select-selector {
+  background: #fff !important;
+}
+
+.hero-media {
+  border-radius: 0 var(--radius) var(--radius) 0;
+  box-shadow: none;
+}
+
+.hero-float-card {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.metric-strip .ant-card,
+.filter-card,
+.job-card,
+.company-card,
+.job-list-card,
+.application-item-card,
+.resume-form,
+.resume-preview,
+.apply-panel .ant-card {
+  border: 1px solid #d9e4f2;
+  box-shadow: 0 14px 34px rgba(0, 31, 63, 0.08);
+}
+
+.filter-card {
+  background: #fff;
+}
+
+.filter-title {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--navy);
+}
+
+.job-card::before,
+.company-card::before,
+.metric-strip .ant-card::before {
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), #1665d8);
+}
+
+.job-card h3 a,
+.job-list-card h3,
+.company-card strong {
+  color: var(--navy);
+}
+
+.job-card:hover,
+.company-card:hover,
+.job-list-card:hover {
+  border-color: rgba(0, 179, 138, 0.42);
+  box-shadow: 0 18px 44px rgba(0, 31, 63, 0.13);
+}
+
+.job-card .ant-btn-primary.ant-btn-background-ghost {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+.job-card .ant-btn-primary.ant-btn-background-ghost:hover {
+  background: var(--primary) !important;
+  color: #fff !important;
+}
+
+.page-hero {
+  min-height: 210px;
+  padding: 28px 32px;
+}
+
+.compact-page-hero img {
+  height: 150px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.18);
+}
+
+.site-footer {
+  margin-top: 42px;
+  background:
+    linear-gradient(135deg, #001f3f, #052a51);
+  border-top: 4px solid var(--primary);
+}
+
+.site-footer .brand-mark {
+  background: #fff;
+  color: var(--primary);
+}
+
+@media (max-width: 900px) {
+  .site-header .mobile-menu-button {
+    color: #fff;
+  }
+
+  .enterprise-hero,
+  .page-hero {
+    border-radius: var(--radius);
+  }
+
+  .hero-media {
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+}
+
+@media (max-width: 640px) {
+  .page-shell {
+    padding: 18px 14px 56px;
+  }
+
+  .search-console {
+    padding: 12px;
   }
 }
