@@ -135,8 +135,8 @@ export default function JobDetail({ auth }: { auth: AuthContextValue }) {
               </Button>
               <Button block icon={<Share2 size={18} />} onClick={share}>复制链接</Button>
             </Space>
-            {feedback && <Alert type="success" showIcon message={feedback} icon={<CheckCircle2 size={18} />} />}
-            {error && <Alert type="error" showIcon message={error} />}
+            {feedback && <Alert type="success" showIcon title={feedback} icon={<CheckCircle2 size={18} />} />}
+            {error && <Alert type="error" showIcon title={error} />}
           </Card>
         </aside>
       </div>
@@ -157,7 +157,7 @@ export default function JobDetail({ auth }: { auth: AuthContextValue }) {
 
       <Drawer
         title="确认投递"
-        width={440}
+        size="default"
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         extra={<Button type="primary" loading={submitting} icon={<Send size={16} />} onClick={apply}>提交申请</Button>}
@@ -172,7 +172,7 @@ export default function JobDetail({ auth }: { auth: AuthContextValue }) {
         <Alert
           type="info"
           showIcon
-          message={auth.user ? `将使用 ${auth.user.fullName} 的当前简历投递` : '登录后可以提交申请'}
+          title={auth.user ? `将使用 ${auth.user.fullName} 的当前简历投递` : '登录后可以提交申请'}
           style={{ marginBottom: 16 }}
         />
         <label className="drawer-field">

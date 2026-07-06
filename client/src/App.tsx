@@ -7,6 +7,7 @@ import { api } from './api/client';
 import Footer from './components/Footer';
 import Header from './components/Header';
 import { LoadingBlock } from './components/StateBlock';
+import { clearDemoSession, readDemoUser } from './demoSession';
 import Applications from './pages/Applications';
 import Companies from './pages/Companies';
 import CompanyDetail from './pages/CompanyDetail';
@@ -36,12 +37,21 @@ export default function App() {
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   async function refresh() {
-    const result = await api.me();
-    setUser(result.authenticated ? (result.user as User) : null);
+    try {
+      const result = await api.me();
+      setUser(result.authenticated ? (result.user as User) : readDemoUser());
+    } catch {
+      setUser(readDemoUser());
+    }
   }
 
   async function logout() {
-    await api.logout();
+    try {
+      await api.logout();
+    } catch {
+      // Local demo sessions should still be able to sign out when the API is offline.
+    }
+    clearDemoSession();
     setUser(null);
     navigate('/');
   }
@@ -62,9 +72,9 @@ export default function App() {
       theme={{
         algorithm: themeMode === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
         token: {
-          colorPrimary: '#00b38a',
-          colorInfo: '#1665d8',
-          colorSuccess: '#00b38a',
+          colorPrimary: '#0f766e',
+          colorInfo: '#2563eb',
+          colorSuccess: '#0f766e',
           colorWarning: '#b7791f',
           colorError: '#b42318',
           borderRadius: 8,

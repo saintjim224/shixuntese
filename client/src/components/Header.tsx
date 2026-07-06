@@ -4,6 +4,7 @@ import {
   BriefcaseBusiness,
   Building2,
   FileText,
+  House,
   LayoutDashboard,
   LogIn,
   LogOut,
@@ -24,6 +25,7 @@ type HeaderProps = {
 };
 
 const navItems = [
+  { to: '/', label: '首页', icon: <House size={18} /> },
   { to: '/jobs', label: '职位', icon: <BriefcaseBusiness size={18} /> },
   { to: '/companies', label: '企业', icon: <Building2 size={18} /> },
   { to: '/resume', label: '简历', icon: <FileText size={18} /> },
@@ -58,8 +60,8 @@ export default function Header({ auth, themeMode, onThemeToggle, mobileOpen, onM
         <NavLink className="brand-link" to="/">
           <span className="brand-mark">Q</span>
           <span>
-            <strong>Q_ITOffer</strong>
-            <small>锐聘网</small>
+            <strong>锐聘 Q_ITOffer</strong>
+            <small>Campus hiring OS</small>
           </span>
         </NavLink>
         <nav className="main-nav" aria-label="主导航">
@@ -94,12 +96,12 @@ export default function Header({ auth, themeMode, onThemeToggle, mobileOpen, onM
             </Dropdown>
           ) : (
             <NavLink className="button compact ant-button-link" to="/login">
-              <LogIn size={18} />登录
+              <LogIn size={18} />登录 / 注册
             </NavLink>
           )}
         </div>
       </div>
-      <Drawer title="Q_ITOffer" placement="left" open={mobileOpen} onClose={() => onMobileOpenChange(false)} width={292}>
+      <Drawer title="Q_ITOffer" placement="left" open={mobileOpen} onClose={() => onMobileOpenChange(false)} size="default">
         {mobileNav}
         {auth.user && (
           <Button block className="drawer-logout" icon={<LogOut size={17} />} onClick={auth.logout}>

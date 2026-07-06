@@ -1,10 +1,24 @@
-import { Alert, Button, Card, Checkbox, Form, Input, Progress, Space, Tabs, Tag } from 'antd';
-import { Github, LogIn, MessageCircle, UserPlus } from 'lucide-react';
+import { Button, Card, Checkbox, Form, Input, Progress, Space, Tabs } from 'antd';
+import {
+  ArrowRight,
+  BadgeCheck,
+  BriefcaseBusiness,
+  Building2,
+  CheckCircle2,
+  FileText,
+  Github,
+  LogIn,
+  MessageCircle,
+  ShieldCheck,
+  Sparkles,
+  UserPlus
+} from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AuthContextValue } from '../App';
 import { api, assetUrl } from '../api/client';
+import { enableDemoSession, isBackendUnavailable, isDemoAccount } from '../demoSession';
 
 type LoginValues = {
   username: string;
@@ -17,7 +31,8 @@ type LoginValues = {
 
 export default function LoginRegister({ auth }: { auth: AuthContextValue }) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [error, setError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [form] = Form.useForm<LoginValues>();
   const password = Form.useWatch('password', form) || '';
@@ -32,7 +47,8 @@ export default function LoginRegister({ auth }: { auth: AuthContextValue }) {
 
   async function submit(values: LoginValues) {
     setBusy(true);
-    setError('');
+    setFormError('');
+    setNotice('');
     try {
       if (mode === 'login') {
         await api.login({ username: values.username, password: values.password });
@@ -48,28 +64,43 @@ export default function LoginRegister({ auth }: { auth: AuthContextValue }) {
       await auth.refresh();
       navigate('/resume');
     } catch (err) {
-      setError((err as Error).message);
+      if (mode === 'login' && isBackendUnavailable(err)) {
+        if (isDemoAccount(values.username, values.password)) {
+          enableDemoSession();
+          await auth.refresh();
+          navigate('/resume');
+          return;
+        }
+        setNotice('当前处于前端演示模式，请使用 applicant / applicant123 进入本地体验。');
+      } else {
+        setFormError((err as Error).message || '登录没有完成，请稍后再试。');
+      }
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <section className="auth-layout">
-      <motion.div className="auth-visual" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}>
-        <img src={assetUrl('/assets/enterprise/analytics-dashboard.jpg')} alt="招聘数据分析工作台" />
-        <div>
-          <span className="eyebrow">Q_ITOffer</span>
-          <h1>统一管理简历、申请与职位机会</h1>
-          <p>求职者前台和管理员后台共用一套 Java Web 会话体系，便于课程验收演示。</p>
-          <Space wrap>
-            <Tag color="green">发现好职位</Tag>
-            <Tag color="blue">维护我的简历</Tag>
-            <Tag color="cyan">跟踪申请进度</Tag>
-          </Space>
+    <section className="auth-layout auth-layout-polished">
+      <motion.div className="auth-visual auth-visual-upgraded" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}>
+        <img src={assetUrl('/assets/enterprise/developer-workspace.jpg')} alt="开发者求职工作台" />
+        <div className="auth-visual-content">
+          <span className="eyebrow"><Sparkles size={16} />Q_ITOffer Campus Hiring</span>
+          <h1>登录后直接进入你的 IT 求职工作台</h1>
+          <p>职位搜索、简历维护和申请进度放在同一条产品流程里，演示时即使后端未启动也能完整浏览。</p>
+          <div className="auth-proof-grid">
+            <span><BriefcaseBusiness size={17} />职位机会</span>
+            <span><FileText size={17} />简历资产</span>
+            <span><Building2 size={17} />企业背书</span>
+            <span><BadgeCheck size={17} />申请跟踪</span>
+          </div>
         </div>
       </motion.div>
-      <Card className="auth-card">
+      <Card className="auth-card auth-card-polished">
+        <div className="auth-card-kicker">
+          <ShieldCheck size={17} />
+          前端演示可离线进入
+        </div>
         <Tabs
           activeKey={mode}
           onChange={(key) => setMode(key as 'login' | 'register')}
@@ -79,8 +110,19 @@ export default function LoginRegister({ auth }: { auth: AuthContextValue }) {
           ]}
         />
         <h1>{mode === 'login' ? '求职者登录' : '创建求职者账号'}</h1>
-        <p>演示账号：applicant / applicant123。后台请访问 /manage/login。</p>
-        {error && <Alert type="error" showIcon message={error} />}
+        <p>演示账号已自动填入。后端未启动时，点击登录会进入本地体验模式。</p>
+        {notice && (
+          <div className="auth-inline-note">
+            <CheckCircle2 size={17} />
+            <span>{notice}</span>
+          </div>
+        )}
+        {formError && (
+          <div className="auth-inline-note auth-inline-note-danger">
+            <ShieldCheck size={17} />
+            <span>{formError}</span>
+          </div>
+        )}
         <Form form={form} layout="vertical" onFinish={submit} className="form-stack">
           <Form.Item name="username" label="用户名" rules={[{ required: true, message: '请输入用户名' }]}>
             <Input autoComplete="username" />
@@ -120,7 +162,7 @@ export default function LoginRegister({ auth }: { auth: AuthContextValue }) {
             </div>
           )}
           <Button type="primary" htmlType="submit" block loading={busy}>
-            {mode === 'login' ? '登录' : '注册并登录'}
+            {mode === 'login' ? <>进入求职工作台 <ArrowRight size={17} /></> : '注册并登录'}
           </Button>
           <Space.Compact block>
             <Button icon={<Github size={17} />} disabled block>GitHub 登录开发中</Button>

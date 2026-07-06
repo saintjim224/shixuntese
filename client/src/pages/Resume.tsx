@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { AuthContextValue } from '../App';
 import { api, assetUrl } from '../api/client';
 import { ErrorBlock, LoadingBlock } from '../components/StateBlock';
+import { demoResumePayload, isBackendUnavailable } from '../demoSession';
 import type { ResumePayload } from '../types';
 
 type ResumeFormValues = {
@@ -154,7 +155,30 @@ export default function Resume({ auth }: { auth: AuthContextValue }) {
           selfIntro: next.self_intro || ''
         });
       })
-      .catch((err: Error) => setError(err.message))
+      .catch((err: Error) => {
+        if (isBackendUnavailable(err)) {
+          const fallback = demoResumePayload(auth.user || undefined);
+          setPayload(fallback);
+          const next = fallback.resume;
+          form.setFieldsValue({
+            fullName: next.full_name || auth.user?.fullName || '',
+            email: next.email || auth.user?.email || '',
+            phone: next.phone || auth.user?.phone || '',
+            gender: next.gender || '',
+            birthDate: String(next.birth_date || '').slice(0, 10),
+            education: next.education || '',
+            major: next.major || '',
+            yearsExperience: next.years_experience || 0,
+            expectedCity: next.expected_city || '',
+            expectedSalary: next.expected_salary || '',
+            skills: next.skills || '',
+            selfIntro: next.self_intro || ''
+          });
+          setError('');
+        } else {
+          setError(err.message);
+        }
+      })
       .finally(() => setLoading(false));
   }, [auth.user, form]);
 
@@ -184,7 +208,30 @@ export default function Resume({ auth }: { auth: AuthContextValue }) {
       setError('');
       message.success('简历已保存');
     } catch (err) {
-      setError((err as Error).message);
+      if (isBackendUnavailable(err)) {
+        setPayload((prev) => ({
+          ...prev,
+          resume: {
+            ...prev.resume,
+            full_name: values.fullName,
+            email: values.email,
+            phone: values.phone,
+            gender: values.gender,
+            birth_date: values.birthDate,
+            education: values.education,
+            major: values.major,
+            years_experience: values.yearsExperience,
+            expected_city: values.expectedCity,
+            expected_salary: values.expectedSalary,
+            skills: values.skills,
+            self_intro: values.selfIntro
+          }
+        }));
+        setError('');
+        message.success('已保存到本地演示视图');
+      } else {
+        setError((err as Error).message);
+      }
     } finally {
       setSaving(false);
     }

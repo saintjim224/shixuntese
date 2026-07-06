@@ -37,11 +37,17 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers
   });
   const text = await response.text();
-  const data = text ? JSON.parse(text) : {};
-  if (!response.ok) {
-    throw new Error(data.message || '请求失败');
+  let data: unknown = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error('后端服务暂时不可用，请确认接口服务已启动。');
   }
-  return data;
+  if (!response.ok) {
+    const message = typeof data === 'object' && data && 'message' in data ? String(data.message || '') : '';
+    throw new Error(message || '请求失败');
+  }
+  return data as T;
 }
 
 export const api = {

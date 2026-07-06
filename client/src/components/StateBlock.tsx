@@ -36,7 +36,7 @@ export function ErrorBlock({ message }: { message: string }) {
       <Alert
         type="error"
         showIcon
-        message="操作没有完成"
+        title="操作没有完成"
         description={message}
         className="wide-alert"
       />

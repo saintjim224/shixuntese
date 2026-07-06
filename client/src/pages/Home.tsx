@@ -1,12 +1,25 @@
-import { Button, Card, Input, Select, Space, Statistic, Tag } from 'antd';
-import { ArrowRight, BadgeCheck, Building2, FileSearch, LockKeyhole, Search, Sparkles, TrendingUp, UsersRound } from 'lucide-react';
+import { Button, Input, Select, Statistic } from 'antd';
+import {
+  ArrowRight,
+  BadgeCheck,
+  BriefcaseBusiness,
+  Building2,
+  FileSearch,
+  GitBranch,
+  Layers3,
+  MapPin,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  TrendingUp,
+  UsersRound
+} from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { api, assetUrl } from '../api/client';
-import JobCard from '../components/JobCard';
-import { CardGridSkeleton, ErrorBlock } from '../components/StateBlock';
-import type { Company, Job, PlatformStats } from '../types';
+import type { PlatformStats } from '../types';
 
 type SearchState = {
   keyword: string;
@@ -14,32 +27,91 @@ type SearchState = {
   category: string;
 };
 
+type GalleryItem = {
+  image: string;
+  title: string;
+  text: string;
+};
+
+const fallbackCategories = ['Java Web', 'React 前端', '测试开发', '后端开发', '数据分析'];
+
+const galleryAssets = {
+  office: '/assets/enterprise/hero-office.jpg',
+  team: '/assets/enterprise/team-collaboration.jpg',
+  developer: '/assets/enterprise/developer-workspace.jpg',
+  analytics: '/assets/enterprise/analytics-dashboard.jpg'
+};
+
+const galleryGroups: Array<{
+  title: string;
+  text: string;
+  direction: 'left' | 'right';
+  items: GalleryItem[];
+}> = [
+  {
+    title: '企业现场',
+    text: '用真实办公与团队协作照片建立招聘平台的可信感。',
+    direction: 'left',
+    items: [
+      { image: galleryAssets.office, title: '协作办公', text: '团队场景与岗位机会同时出现' },
+      { image: galleryAssets.team, title: '企业沟通', text: '企业信息、行业和地点更清楚' },
+      { image: galleryAssets.developer, title: '技术现场', text: '研发氛围让 IT 岗位更可信' },
+      { image: galleryAssets.analytics, title: '数据工作台', text: '后台和前台形成完整闭环' }
+    ]
+  },
+  {
+    title: '求职路径',
+    text: '从简历、搜索到申请状态，用一条视觉动线贯穿。',
+    direction: 'right',
+    items: [
+      { image: galleryAssets.developer, title: '开发者工作台', text: '适合 IT 求职方向的首屏视觉' },
+      { image: galleryAssets.analytics, title: '岗位检索', text: '搜索、筛选和推荐放在同一流程' },
+      { image: galleryAssets.office, title: '申请沟通', text: '投递、初筛、面试状态一目了然' },
+      { image: galleryAssets.team, title: '团队匹配', text: '企业文化和岗位要求自然衔接' }
+    ]
+  },
+  {
+    title: '产品系统',
+    text: '参考 GitHub 的信息层级，把招聘内容做得克制、清楚、可信。',
+    direction: 'left',
+    items: [
+      { image: galleryAssets.analytics, title: '信息密度', text: '标签、统计、列表层级更像成熟产品' },
+      { image: galleryAssets.team, title: '企业背书', text: '企业页保留招聘网站常见判断线索' },
+      { image: galleryAssets.developer, title: '岗位比较', text: '薪资、城市、学历和福利优先展示' },
+      { image: galleryAssets.office, title: '视觉延展', text: '用图片分组承接页面情绪和信息' }
+    ]
+  }
+];
+
+const platformValues = [
+  { icon: <BadgeCheck size={22} />, title: '岗位可信', text: '职位、企业和投递状态由后台统一维护，适合实训答辩展示。' },
+  { icon: <FileSearch size={22} />, title: '简历成型', text: '基础资料、项目经历和技能标签分模块维护，投递前快速补齐。' },
+  { icon: <ShieldCheck size={22} />, title: '权限清楚', text: '求职者前台和管理员后台分层，登录会话与操作边界清晰。' },
+  { icon: <GitBranch size={22} />, title: '状态可追踪', text: '申请记录按投递、查看、面试和结果推进，流程更透明。' }
+];
+
 export default function Home() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
   const [stats, setStats] = useState<PlatformStats | null>(null);
+  const [statsError, setStatsError] = useState('');
   const [search, setSearch] = useState<SearchState>({ keyword: '', city: '', category: '' });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    Promise.all([api.jobs(), api.companies(), api.stats()])
-      .then(([jobResult, companyResult, statsResult]) => {
-        setJobs(jobResult.items.slice(0, 4));
-        setCompanies(companyResult.items.slice(0, 3));
-        setStats(statsResult);
-      })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
+    api.stats()
+      .then(setStats)
+      .catch((err: Error) => setStatsError(err.message));
   }, []);
 
   const cityOptions = useMemo(
-    () => stats?.cities.map((item) => ({ label: item.name, value: item.name })) || [],
+    () => (stats?.cities || []).map((item) => ({ label: item.name, value: item.name })),
     [stats]
   );
   const categoryOptions = useMemo(
-    () => stats?.categories.map((item) => ({ label: item.name, value: item.name })) || [],
+    () => (stats?.categories || fallbackCategories.map((name) => ({ name, value: 0 }))).map((item) => ({ label: item.name, value: item.name })),
+    [stats]
+  );
+  const hotCategories = useMemo(
+    () => (stats?.categories || fallbackCategories.map((name) => ({ name, value: 0 }))).slice(0, 5),
     [stats]
   );
 
@@ -52,13 +124,19 @@ export default function Home() {
   }
 
   return (
-    <div className="home">
-      <section className="hero-section enterprise-hero">
-        <div className="hero-copy">
-          <span className="eyebrow"><Sparkles size={16} />IT 招聘代理服务平台</span>
-          <h1>让 IT 人才和企业岗位在同一套流程里高效匹配。</h1>
-          <p>职位、企业、简历和投递状态统一流转，帮助求职者更快判断机会，也让后台管理更清晰。</p>
-          <div className="search-console" aria-label="职位搜索">
+    <div className="home home-gallery-page">
+      <section className="home-showcase">
+        <motion.div
+          className="home-showcase-copy"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.34, ease: 'easeOut' }}
+        >
+          <span className="product-kicker"><Sparkles size={16} />Q_ITOffer Recruitment Platform</span>
+          <h1>让校园 IT 招聘，看起来像真正的产品。</h1>
+          <p>首页独立承担品牌与入口，职位、企业、简历和申请页面回归高效的信息工作流。</p>
+
+          <div className="home-search-panel" aria-label="职位搜索">
             <Input
               size="large"
               allowClear
@@ -72,7 +150,7 @@ export default function Home() {
               size="large"
               allowClear
               showSearch
-              placeholder="选择城市"
+              placeholder="城市"
               options={cityOptions}
               value={search.city || undefined}
               onChange={(value) => setSearch((prev) => ({ ...prev, city: value || '' }))}
@@ -81,7 +159,7 @@ export default function Home() {
               size="large"
               allowClear
               showSearch
-              placeholder="选择岗位方向"
+              placeholder="岗位方向"
               options={categoryOptions}
               value={search.category || undefined}
               onChange={(value) => setSearch((prev) => ({ ...prev, category: value || '' }))}
@@ -90,99 +168,119 @@ export default function Home() {
               搜索职位
             </Button>
           </div>
-          <Space wrap className="hot-tags" size={[12, 12]}>
-            <Tag color="green" style={{ borderRadius: 4 }}>热门方向</Tag>
-            {(stats?.categories.slice(0, 4) || []).map((item) => (
-              <Tag
+
+          <div className="home-cta-row">
+            <Button type="primary" size="large" href="#/jobs" icon={<BriefcaseBusiness size={18} />}>
+              进入职位库
+            </Button>
+            <Button size="large" href="#/resume" icon={<FileSearch size={18} />}>
+              完善简历
+            </Button>
+          </div>
+
+          <div className="hot-tags" aria-label="热门岗位方向">
+            <span>热门方向</span>
+            {hotCategories.map((item) => (
+              <button
                 key={item.name}
-                className="clickable-tag"
+                type="button"
+                className="keyword-chip"
                 onClick={() => navigate(`/jobs?category=${encodeURIComponent(item.name)}`)}
               >
                 {item.name}
-              </Tag>
+              </button>
             ))}
-          </Space>
-        </div>
-        <motion.div
-          className="hero-media"
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.32, ease: 'easeOut' }}
-        >
-          <img src={assetUrl('/assets/enterprise/hero-office.jpg')} alt="IT 企业协作办公场景" width="520" height="420" />
-          <div className="hero-float-card">
-            <TrendingUp size={18} />
-            <span>本地演示数据已连接</span>
-            <strong>{stats?.applicationCount || 0} 份投递记录</strong>
           </div>
+          {statsError && <span className="home-data-note">后端数据未连接时，页面会保留完整视觉结构。</span>}
         </motion.div>
+
+        <motion.aside
+          className="home-visual-wall"
+          initial={{ opacity: 0, x: 18 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.34, ease: 'easeOut', delay: 0.08 }}
+          aria-label="首页视觉预览"
+        >
+          <img className="wall-main" src={assetUrl('/assets/enterprise/hero-office.jpg')} alt="IT 企业协作办公场景" />
+          <div className="wall-secondary">
+            <img src={assetUrl('/assets/enterprise/developer-workspace.jpg')} alt="开发者工作台" />
+            <img src={assetUrl('/assets/enterprise/analytics-dashboard.jpg')} alt="招聘数据分析工作台" />
+          </div>
+          <div className="wall-badge">
+            <Layers3 size={18} />
+            <span>多页面招聘系统</span>
+            <strong>前台 / 简历 / 申请 / 后台</strong>
+          </div>
+        </motion.aside>
       </section>
 
-      <section className="metric-strip" aria-label="平台数据">
-        <Card className="metric-card"><Statistic title="开放职位" value={stats?.jobCount || 0} suffix="个" /><span className="metric-icon"><BriefcaseIcon /></span></Card>
-        <Card className="metric-card"><Statistic title="认证企业" value={stats?.companyCount || 0} suffix="家" /><span className="metric-icon"><Building2 size={22} /></span></Card>
-        <Card className="metric-card"><Statistic title="求职用户" value={stats?.applicantCount || 0} suffix="人" /><span className="metric-icon"><UsersRound size={22} /></span></Card>
-        <Card className="metric-card"><Statistic title="在线投递" value={stats?.applicationCount || 0} suffix="次" /><span className="metric-icon"><TrendingUp size={22} /></span></Card>
+      <section className="home-metrics" aria-label="平台数据">
+        <article><Statistic title="开放职位" value={stats?.jobCount || 0} suffix="个" /><BriefcaseBusiness size={22} /></article>
+        <article><Statistic title="认证企业" value={stats?.companyCount || 0} suffix="家" /><Building2 size={22} /></article>
+        <article><Statistic title="求职用户" value={stats?.applicantCount || 0} suffix="人" /><UsersRound size={22} /></article>
+        <article><Statistic title="在线投递" value={stats?.applicationCount || 0} suffix="次" /><TrendingUp size={22} /></article>
       </section>
 
-      <section className="trust-grid" aria-label="为什么选择锐聘">
-        {[
-          { icon: <BadgeCheck size={22} />, title: '真实岗位', text: '企业、职位和投递状态由后台统一维护，演示数据链路完整。' },
-          { icon: <FileSearch size={22} />, title: '简历闭环', text: '基础信息、项目经历和技能标签可模块化维护，投递前更有把握。' },
-          { icon: <LockKeyhole size={22} />, title: '会话安全', text: '求职者和管理员沿用 Java Web 会话，权限边界清晰。' },
-          { icon: <TrendingUp size={22} />, title: '数据可视', text: '后台统计、图表和日志让平台运行状态一眼可见。' }
-        ].map((item) => (
-          <article className="trust-card" key={item.title}>
+      <section className="image-reel-section" aria-label="招聘平台视觉滚动展示">
+        <div className="gallery-section-head">
+          <span><Target size={16} />首页视觉系统</span>
+          <h2>三组图片滚动，把招聘流程讲清楚。</h2>
+          <p>图片承担氛围，卡片承担信息。首屏之后不急着塞列表，而是先建立产品质感。</p>
+        </div>
+        <div className="image-reel-stack">
+          {galleryGroups.map((group) => (
+            <article className="image-reel-group" key={group.title}>
+              <div className="image-reel-group-copy">
+                <strong>{group.title}</strong>
+                <span>{group.text}</span>
+              </div>
+              <div className="image-reel-window">
+                <div className={`image-reel-track image-reel-${group.direction}`}>
+                  {[...group.items, ...group.items].map((item, index) => (
+                    <figure className="image-reel-card" key={`${group.title}-${item.title}-${index}`}>
+                      <img src={assetUrl(item.image)} alt={item.title} loading="lazy" />
+                      <figcaption>
+                        <strong>{item.title}</strong>
+                        <span>{item.text}</span>
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="home-value-grid" aria-label="平台能力">
+        {platformValues.map((item) => (
+          <motion.article
+            className="value-card"
+            key={item.title}
+            whileHover={{ y: -3 }}
+            transition={{ duration: 0.18 }}
+          >
             <span className="trust-icon">{item.icon}</span>
             <h3>{item.title}</h3>
             <p>{item.text}</p>
-          </article>
+          </motion.article>
         ))}
       </section>
 
-      {loading && <CardGridSkeleton />}
-      {error && <ErrorBlock message={error} />}
-
-      {!loading && !error && (
-        <>
-          <section className="section-head">
-            <div>
-              <h2>最新职位</h2>
-              <p>按薪资、城市、学历和企业信息快速判断岗位匹配度。</p>
-            </div>
-            <Button href="#/jobs">全部职位 <ArrowRight size={16} /></Button>
-          </section>
-          <section className="job-grid">
-            {jobs.map((job) => <JobCard key={job.id} job={job} />)}
-          </section>
-
-          <section className="section-head">
-            <div>
-              <h2>精选企业</h2>
-              <p>企业展示采用招聘系统常见的认证企业卡片，突出行业、地点和开放职位。</p>
-            </div>
-            <Button href="#/companies">全部企业 <ArrowRight size={16} /></Button>
-          </section>
-          <section className="company-strip">
-            {companies.map((company) => (
-              <motion.div key={company.id} whileHover={{ y: -3 }} transition={{ duration: 0.18 }}>
-                <Link className="company-card company-banner-card" to={`/companies/${company.id}`}>
-                  <img src={assetUrl(company.logo_url)} alt={`${company.name} logo`} />
-                  <strong>{company.name}</strong>
-                  <span><Building2 size={15} />{company.city} / {company.industry}</span>
-                  <span>{company.financing_stage || '成长型企业'} / {company.scale}</span>
-                  <p>{company.description}</p>
-                  <Tag color="blue">{company.job_count || 0} 个开放职位</Tag>
-                </Link>
-              </motion.div>
-            ))}
-          </section>
-        </>
-      )}
+      <section className="home-final-cta">
+        <div>
+          <h2>从首页进入工作流，内页负责完成判断。</h2>
+          <p>职位页看机会，企业页看可信度，简历页补材料，申请页看进度。</p>
+        </div>
+        <div className="home-cta-row">
+          <Button type="primary" size="large" href="#/jobs">
+            查看职位 <ArrowRight size={16} />
+          </Button>
+          <Button size="large" href="#/companies">
+            浏览企业 <MapPin size={16} />
+          </Button>
+        </div>
+      </section>
     </div>
   );
-}
-
-function BriefcaseIcon() {
-  return <span aria-hidden="true" style={{ fontWeight: 900 }}>IT</span>;
 }

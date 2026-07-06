@@ -6,7 +6,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api, assetUrl } from '../api/client';
 import JobCard from '../components/JobCard';
 import PageHero from '../components/PageHero';
-import { CardGridSkeleton, EmptyBlock, ErrorBlock } from '../components/StateBlock';
+import { CardGridSkeleton, EmptyBlock } from '../components/StateBlock';
 import type { Job, PlatformStats } from '../types';
 
 type Filters = {
@@ -28,6 +28,132 @@ const salaryOptions = [
   { label: '20K 以上', value: '20000-0' }
 ];
 
+const demoCities = ['成都', '杭州', '上海', '深圳'];
+const demoCategories = ['React 前端', 'Java 后端', '测试开发', '数据分析', '产品运营'];
+
+const demoJobs: Job[] = [
+  {
+    id: 91001,
+    company_id: 9001,
+    title: 'React 前端开发实习生',
+    category: 'React 前端',
+    salary_min: 7000,
+    salary_max: 11000,
+    city: '成都',
+    education: '本科及以上',
+    experience: '1年以内',
+    headcount: 4,
+    highlights: 'React,TypeScript,组件工程化',
+    description: '参与招聘平台前端业务迭代，负责职位搜索、简历投递和企业展示等核心模块体验优化。',
+    requirement_text: '熟悉 React、TypeScript 和基础工程化流程，有完整项目经验优先。',
+    status: 'OPEN',
+    posted_at: '2026-07-05T09:00:00+08:00',
+    company_name: '青软实训数字科技',
+    company_logo: '/assets/it-logo.png',
+    company_industry: '教育科技'
+  },
+  {
+    id: 91002,
+    company_id: 9002,
+    title: 'Java 后端开发实习生',
+    category: 'Java 后端',
+    salary_min: 8000,
+    salary_max: 13000,
+    city: '杭州',
+    education: '本科及以上',
+    experience: '1-3年',
+    headcount: 3,
+    highlights: 'Spring Boot,MySQL,接口设计',
+    description: '建设职位、企业、简历和投递流程 API，保障前后台数据一致性与权限边界。',
+    requirement_text: '理解 Spring Boot、RESTful API 和 MySQL 表结构设计。',
+    status: 'OPEN',
+    posted_at: '2026-07-04T10:20:00+08:00',
+    company_name: '云启招聘智能',
+    company_logo: '/assets/it-logo.png',
+    company_industry: 'SaaS'
+  },
+  {
+    id: 91003,
+    company_id: 9003,
+    title: '测试开发工程师',
+    category: '测试开发',
+    salary_min: 9000,
+    salary_max: 15000,
+    city: '上海',
+    education: '本科及以上',
+    experience: '1-3年',
+    headcount: 2,
+    highlights: '自动化测试,接口测试,质量平台',
+    description: '负责招聘流程关键链路的自动化测试与质量看板建设，提高发布稳定性。',
+    requirement_text: '熟悉接口测试、自动化测试框架和缺陷追踪流程。',
+    status: 'OPEN',
+    posted_at: '2026-07-03T14:00:00+08:00',
+    company_name: '星程质量实验室',
+    company_logo: '/assets/it-logo.png',
+    company_industry: '企业服务'
+  },
+  {
+    id: 91004,
+    company_id: 9004,
+    title: '数据分析实习生',
+    category: '数据分析',
+    salary_min: 6000,
+    salary_max: 10000,
+    city: '深圳',
+    education: '本科及以上',
+    experience: '不限',
+    headcount: 5,
+    highlights: 'SQL,BI 看板,业务分析',
+    description: '围绕职位转化、投递效率和企业活跃度做指标分析，输出可用于产品决策的洞察。',
+    requirement_text: '熟悉 SQL 和基础数据可视化，能把业务问题拆成指标。',
+    status: 'OPEN',
+    posted_at: '2026-07-02T11:30:00+08:00',
+    company_name: '明策数据咨询',
+    company_logo: '/assets/it-logo.png',
+    company_industry: '数据服务'
+  },
+  {
+    id: 91005,
+    company_id: 9005,
+    title: '产品运营实习生',
+    category: '产品运营',
+    salary_min: 5000,
+    salary_max: 8000,
+    city: '成都',
+    education: '专科及以上',
+    experience: '不限',
+    headcount: 2,
+    highlights: '用户反馈,内容运营,增长实验',
+    description: '维护校园招聘内容质量，跟进求职者反馈，协助优化岗位推荐和申请转化。',
+    requirement_text: '沟通清楚，能整理用户反馈并推进小步快跑的体验改进。',
+    status: 'OPEN',
+    posted_at: '2026-07-01T16:10:00+08:00',
+    company_name: '锐聘校园增长组',
+    company_logo: '/assets/it-logo.png',
+    company_industry: '招聘平台'
+  },
+  {
+    id: 91006,
+    company_id: 9006,
+    title: 'Web 全栈开发实习生',
+    category: 'Java 后端',
+    salary_min: 10000,
+    salary_max: 18000,
+    city: '上海',
+    education: '本科及以上',
+    experience: '3-5年',
+    headcount: 1,
+    highlights: 'React,Servlet,MySQL',
+    description: '连接前端体验和后端业务模型，负责职位详情、企业主页和申请状态的端到端实现。',
+    requirement_text: '具备前后端联调经验，理解基础安全、会话和表单校验。',
+    status: 'OPEN',
+    posted_at: '2026-06-30T13:40:00+08:00',
+    company_name: '栈桥研发中心',
+    company_logo: '/assets/it-logo.png',
+    company_industry: '互联网'
+  }
+];
+
 export default function Jobs() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -36,19 +162,24 @@ export default function Jobs() {
   const [filters, setFilters] = useState<Filters>(() => fromParams(searchParams));
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [demoMode, setDemoMode] = useState(false);
 
   useEffect(() => {
     const next = fromParams(searchParams);
     setFilters(next);
     setLoading(true);
-    setError('');
     api.jobs(`?${toParams(next).toString()}`)
       .then((result) => {
+        setDemoMode(false);
         setJobs(result.items);
         setTotal(Number(result.total || result.items.length));
       })
-      .catch((err: Error) => setError(err.message))
+      .catch(() => {
+        const fallback = filterDemoJobs(next);
+        setDemoMode(true);
+        setJobs(fallback);
+        setTotal(fallback.length);
+      })
       .finally(() => setLoading(false));
   }, [searchParams]);
 
@@ -57,11 +188,11 @@ export default function Jobs() {
   }, []);
 
   const cityOptions = useMemo(
-    () => stats?.cities.map((item) => ({ label: item.name, value: item.name })) || [],
+    () => (stats?.cities.length ? stats.cities.map((item) => item.name) : demoCities).map((item) => ({ label: item, value: item })),
     [stats]
   );
   const categoryOptions = useMemo(
-    () => stats?.categories.map((item) => ({ label: item.name, value: item.name })) || [],
+    () => (stats?.categories.length ? stats.categories.map((item) => item.name) : demoCategories).map((item) => ({ label: item, value: item })),
     [stats]
   );
 
@@ -83,19 +214,19 @@ export default function Jobs() {
   ].filter(Boolean) as string[];
 
   return (
-    <div>
+    <div className="jobs-page">
       <PageHero
         eyebrow={<><SlidersHorizontal size={16} />职位检索</>}
-        title="职位展示"
-        text="按关键词、城市、岗位方向、薪资和经验筛选开放中的 IT 招聘岗位。"
+        title="发现适合你的 IT 岗位"
+        text="按关键词、城市、方向、薪资和经验筛选开放中的招聘岗位。"
         image={assetUrl('/assets/enterprise/developer-workspace.jpg')}
         alt="开发者办公桌"
       />
 
-      <Card className="filter-card">
+      <Card className="filter-card job-filter-card">
         <div className="filter-title">
           <span><Filter size={17} />精准筛选</span>
-          <Tag color="green">{loading ? '查询中' : `${total} 个结果`}</Tag>
+          <Tag color={demoMode ? 'blue' : 'green'}>{loading ? '查询中' : `${demoMode ? '演示 ' : ''}${total} 个结果`}</Tag>
         </div>
         <div className="filter-bar enterprise-filter">
           <Input
@@ -179,19 +310,23 @@ export default function Jobs() {
       </div>
 
       {loading && <CardGridSkeleton />}
-      {error && <ErrorBlock message={error} />}
-      {!loading && !error && jobs.length === 0 && <EmptyBlock title="没有匹配职位" text="换一个关键词或清空筛选条件再试一次。" />}
-      {!loading && !error && view === 'grid' && (
+      {!loading && demoMode && (
+        <div className="demo-data-note">
+          后端服务未连接，当前展示演示岗位用于前端预览。
+        </div>
+      )}
+      {!loading && jobs.length === 0 && <EmptyBlock title="没有匹配职位" text="换一个关键词或清空筛选条件再试一次。" />}
+      {!loading && view === 'grid' && (
         <motion.section className="job-grid" layout>
           {jobs.map((job) => <JobCard key={job.id} job={job} />)}
         </motion.section>
       )}
-      {!loading && !error && view === 'list' && (
+      {!loading && view === 'list' && (
         <motion.section className="job-list" layout>
           {jobs.map((job) => <JobListCard key={job.id} job={job} />)}
         </motion.section>
       )}
-      {!loading && !error && total > 0 && (
+      {!loading && total > 0 && (
         <Pagination
           current={filters.page}
           pageSize={12}
@@ -203,6 +338,31 @@ export default function Jobs() {
       )}
     </div>
   );
+}
+
+function filterDemoJobs(filters: Filters) {
+  const keyword = filters.keyword.trim().toLowerCase();
+  const [salaryMin, salaryMax] = filters.salary.split('-').map((item) => Number(item || 0));
+  const result = demoJobs.filter((job) => {
+    const haystack = [
+      job.title,
+      job.company_name,
+      job.category,
+      job.city,
+      job.highlights,
+      job.description
+    ].join(' ').toLowerCase();
+    const matchKeyword = !keyword || haystack.includes(keyword);
+    const matchCity = filters.city.length === 0 || filters.city.includes(job.city);
+    const matchCategory = filters.category.length === 0 || filters.category.includes(job.category);
+    const matchEducation = !filters.education || filters.education === '学历不限' || job.education === filters.education;
+    const matchExperience = !filters.experience || filters.experience === '不限' || job.experience === filters.experience;
+    const matchSalary = !filters.salary || (salaryMax === 0 ? job.salary_max >= salaryMin : job.salary_max >= salaryMin && job.salary_min <= salaryMax);
+    return matchKeyword && matchCity && matchCategory && matchEducation && matchExperience && matchSalary;
+  });
+  if (filters.sort === 'salary_desc') return [...result].sort((a, b) => b.salary_max - a.salary_max);
+  if (filters.sort === 'salary_asc') return [...result].sort((a, b) => a.salary_min - b.salary_min);
+  return result;
 }
 
 function JobListCard({ job }: { job: Job }) {

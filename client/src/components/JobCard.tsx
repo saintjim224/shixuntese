@@ -1,5 +1,5 @@
-import { App, Button, Card, Space, Tag } from 'antd';
-import { Building2, Heart, MapPin, Timer, WalletCards } from 'lucide-react';
+import { App, Button, Card, Tag } from 'antd';
+import { Building2, ChevronRight, Clock3, GraduationCap, Heart, MapPin, WalletCards } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -38,30 +38,36 @@ export default function JobCard({ job }: { job: Job }) {
       transition={{ duration: 0.24, ease: 'easeOut' }}
       whileHover={{ y: -4 }}
     >
-      <Card className="job-card" hoverable>
-        <div className="job-card-top">
-          <img src={assetUrl(job.company_logo)} alt={`${job.company_name || '企业'} logo`} loading="lazy" />
-          <div>
-            <h3><Link to={`/jobs/${job.id}`}>{job.title}</Link></h3>
-            <p><Building2 size={16} />{job.company_name}</p>
+      <Card className="job-card job-card-refined" hoverable>
+        <div className="job-card-head">
+          <div className="job-card-title">
+            <img src={assetUrl(job.company_logo)} alt={`${job.company_name || '企业'} logo`} loading="lazy" />
+            <div>
+              <h3><Link to={`/jobs/${job.id}`}>{job.title}</Link></h3>
+              <p><Building2 size={15} />{job.company_name || '企业信息待同步'}</p>
+            </div>
           </div>
+          <strong className="job-salary"><WalletCards size={16} />{job.salary_min}-{job.salary_max} 元/月</strong>
         </div>
+
         <div className="job-meta">
           <Tag icon={<MapPin size={14} />}>{job.city}</Tag>
-          <Tag color="green" icon={<WalletCards size={14} />}>{job.salary_min}-{job.salary_max} 元/月</Tag>
-          <Tag color="blue">{job.education || '学历不限'}</Tag>
+          <Tag icon={<GraduationCap size={14} />}>{job.education || '学历不限'}</Tag>
           <Tag>{job.category}</Tag>
-          {job.posted_at && <Tag icon={<Timer size={14} />}>{formatDate(job.posted_at)}</Tag>}
+          {job.posted_at && <Tag icon={<Clock3 size={14} />}>{formatDate(job.posted_at)}</Tag>}
         </div>
+
         {highlights.length > 0 && (
-          <Space wrap size={[6, 6]}>
-            {highlights.map((item) => <Tag key={item} color="cyan">{item}</Tag>)}
-          </Space>
+          <div className="job-highlight-row">
+            {highlights.map((item) => <span key={item}>{item}</span>)}
+          </div>
         )}
-        <p className="job-desc">{job.description}</p>
-        <Space.Compact block>
-          <Button type="primary" ghost block href={`#/jobs/${job.id}`}>
-            查看详情
+
+        <p className="job-desc">{job.description || '暂无职位描述，进入详情页查看岗位要求和企业介绍。'}</p>
+
+        <div className="job-card-actions">
+          <Button type="primary" href={`#/jobs/${job.id}`}>
+            查看详情 <ChevronRight size={16} />
           </Button>
           <Button
             aria-label={favorited ? '取消收藏职位' : '收藏职位'}
@@ -69,7 +75,7 @@ export default function JobCard({ job }: { job: Job }) {
             loading={busy}
             onClick={toggleFavorite}
           />
-        </Space.Compact>
+        </div>
       </Card>
     </motion.article>
   );
