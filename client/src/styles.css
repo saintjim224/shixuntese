@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
-  --bg: #f3f7fb;
-  --bg-grid: rgba(22, 101, 216, 0.08);
+  --bg: #f0f4f8;
+  --bg-grid: rgba(0, 179, 138, 0.07);
   --surface: #ffffff;
   --surface-soft: #eef5ff;
   --surface-muted: #f8fafc;
@@ -11,6 +11,8 @@
   --muted: #667085;
   --line: #d8dee9;
   --line-soft: #e8edf5;
+  --brand-blue: #1665d8;
+  --brand-blue-dark: #0f4fad;
   --primary: #1665d8;
   --primary-dark: #0f4fad;
   --primary-active: #0a3d8a;
@@ -21,6 +23,7 @@
   --warning: #b7791f;
   --danger: #b42318;
   --info: #1665d8;
+  --focus-ring: rgba(0, 179, 138, 0.22);
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 12px;
@@ -33,7 +36,7 @@
   --shadow-md: 0 18px 48px rgba(15, 47, 92, 0.13);
   --shadow-lg: 0 24px 64px rgba(15, 47, 92, 0.18);
   --radius: 8px;
-  --radius-lg: 12px;
+  --radius-lg: 8px;
   --header-bg: rgba(255, 255, 255, 0.92);
   font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
 }
@@ -51,6 +54,8 @@
   --muted: #9aa8bd;
   --line: #263244;
   --line-soft: #1d2738;
+  --brand-blue: #69a7ff;
+  --brand-blue-dark: #9bc4ff;
   --primary: #69a7ff;
   --primary-dark: #9bc4ff;
   --primary-active: #d0e3ff;
@@ -60,6 +65,7 @@
   --success: #35d2ac;
   --warning: #f5c369;
   --danger: #ff8c85;
+  --focus-ring: rgba(53, 210, 172, 0.26);
   --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.24);
   --shadow-md: 0 18px 48px rgba(0, 0, 0, 0.34);
   --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.42);
@@ -78,11 +84,12 @@ body {
   margin: 0;
   min-width: 320px;
   background:
-    linear-gradient(180deg, rgba(236, 244, 255, 0.86) 0, rgba(244, 247, 251, 0) 320px),
+    linear-gradient(180deg, rgba(232, 248, 244, 0.82) 0, rgba(240, 244, 248, 0) 320px),
+    radial-gradient(circle at 86% 120px, rgba(22, 101, 216, 0.12), transparent 280px),
     linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px),
     linear-gradient(180deg, var(--bg-grid) 1px, transparent 1px),
     var(--bg);
-  background-size: auto, 44px 44px, 44px 44px, auto;
+  background-size: auto, auto, 44px 44px, 44px 44px, auto;
   color: var(--text);
   font-size: 16px;
   line-height: 1.6;
@@ -90,11 +97,12 @@ body {
 
 :root[data-theme='dark'] body {
   background:
-    linear-gradient(180deg, rgba(22, 101, 216, 0.18) 0, rgba(11, 18, 32, 0) 360px),
+    linear-gradient(180deg, rgba(0, 179, 138, 0.16) 0, rgba(11, 18, 32, 0) 360px),
+    radial-gradient(circle at 86% 120px, rgba(22, 101, 216, 0.22), transparent 300px),
     linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px),
     linear-gradient(180deg, var(--bg-grid) 1px, transparent 1px),
     var(--bg);
-  background-size: auto, 44px 44px, 44px 44px, auto;
+  background-size: auto, auto, 44px 44px, 44px 44px, auto;
 }
 
 button,
@@ -285,7 +293,8 @@ img {
   display: grid;
   align-content: center;
   padding: clamp(28px, 4vw, 52px);
-  background: linear-gradient(135deg, var(--surface) 0%, var(--surface-soft) 100%);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--surface) 94%, var(--accent)) 0%, var(--surface-soft) 100%);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
@@ -356,6 +365,14 @@ p {
   background: #dfe7f3;
 }
 
+.hero-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 52%, rgba(5, 15, 36, 0.22));
+}
+
 .hero-media img {
   width: 100%;
   height: 100%;
@@ -365,6 +382,7 @@ p {
 
 .hero-float-card {
   position: absolute;
+  z-index: 1;
   right: 18px;
   bottom: 18px;
   width: min(260px, calc(100% - 36px));
@@ -428,8 +446,14 @@ p {
 
 .filter-card {
   margin-bottom: 18px;
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
+  background: color-mix(in srgb, var(--surface) 94%, var(--accent-soft));
+}
+
+.filter-card .ant-card-body {
+  border-radius: var(--radius);
 }
 
 .filter-title {
@@ -450,6 +474,13 @@ p {
   grid-template-columns: minmax(220px, 1fr) minmax(150px, 0.7fr) minmax(170px, 0.8fr) auto;
   gap: 12px;
   align-items: center;
+}
+
+.filter-bar .ant-input-affix-wrapper,
+.filter-bar .ant-select-selector,
+.enterprise-filter .ant-input-affix-wrapper,
+.enterprise-filter .ant-select-selector {
+  border-radius: var(--radius) !important;
 }
 
 .filter-bar.narrow {
@@ -477,9 +508,22 @@ p {
 }
 
 .job-card {
+  position: relative;
   height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
+}
+
+.job-card::before,
+.company-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--brand-blue));
+  opacity: 0.9;
 }
 
 .job-card .ant-card-body {
@@ -549,6 +593,8 @@ p {
 }
 
 .company-card {
+  position: relative;
+  overflow: hidden;
   height: 100%;
   display: grid;
   gap: 10px;
@@ -558,6 +604,12 @@ p {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
+}
+
+.job-card:hover,
+.company-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  box-shadow: var(--shadow-md);
 }
 
 .company-card img {
@@ -870,7 +922,7 @@ a:focus-visible,
 .ant-btn:focus-visible,
 .ant-input:focus,
 .ant-select-focused .ant-select-selector {
-  outline: 3px solid rgba(22, 101, 216, 0.18);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 

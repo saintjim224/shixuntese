@@ -62,7 +62,8 @@ export default function App() {
       theme={{
         algorithm: themeMode === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
         token: {
-          colorPrimary: '#1665d8',
+          colorPrimary: '#00b38a',
+          colorInfo: '#1665d8',
           colorSuccess: '#00b38a',
           colorWarning: '#b7791f',
           colorError: '#b42318',
