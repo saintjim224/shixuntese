@@ -1,0 +1,5 @@
+$env:JAVA_HOME = "D:\DevTools\jdk-21"
+$env:MAVEN_HOME = "D:\DevTools\apache-maven-3.9.16"
+$env:CATALINA_HOME = "D:\DevTools\apache-tomcat-9.0.119"
+$env:MYSQL_HOME = "D:\DevTools\mysql-8.4.9-winx64"
+$env:Path = "$env:JAVA_HOME\bin;$env:MAVEN_HOME\bin;$env:CATALINA_HOME\bin;$env:MYSQL_HOME\bin;$env:Path"
