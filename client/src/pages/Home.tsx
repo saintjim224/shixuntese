@@ -90,8 +90,8 @@ export default function Home() {
               搜索职位
             </Button>
           </div>
-          <Space wrap className="hot-tags" size={[8, 8]}>
-            <Tag color="green">热门方向</Tag>
+          <Space wrap className="hot-tags" size={[12, 12]}>
+            <Tag color="green" style={{ borderRadius: 4 }}>热门方向</Tag>
             {(stats?.categories.slice(0, 4) || []).map((item) => (
               <Tag
                 key={item.name}
