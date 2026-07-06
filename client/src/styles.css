@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
-  --bg: #f3f7fb;
-  --bg-grid: rgba(22, 101, 216, 0.08);
+  --bg: #f0f4f8;
+  --bg-grid: rgba(0, 179, 138, 0.06);
   --surface: #ffffff;
   --surface-soft: #eef5ff;
   --surface-muted: #f8fafc;
@@ -11,9 +11,9 @@
   --muted: #667085;
   --line: #d8dee9;
   --line-soft: #e8edf5;
-  --primary: #1665d8;
-  --primary-dark: #0f4fad;
-  --primary-active: #0a3d8a;
+  --primary: #00b38a;
+  --primary-dark: #008f72;
+  --primary-active: #00735c;
   --accent: #00b38a;
   --accent-dark: #008f72;
   --accent-soft: #e7fff7;
@@ -33,7 +33,7 @@
   --shadow-md: 0 18px 48px rgba(15, 47, 92, 0.13);
   --shadow-lg: 0 24px 64px rgba(15, 47, 92, 0.18);
   --radius: 8px;
-  --radius-lg: 12px;
+  --radius-lg: 8px;
   --header-bg: rgba(255, 255, 255, 0.92);
   font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
 }
@@ -324,7 +324,7 @@ p {
 
 .search-console {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(140px, 0.58fr) minmax(160px, 0.66fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   align-items: center;
   margin-top: 28px;
@@ -446,10 +446,22 @@ p {
 
 .filter-bar,
 .enterprise-filter {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(150px, 0.7fr) minmax(170px, 0.8fr) auto;
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+}
+
+.filter-bar > *,
+.enterprise-filter > * {
+  flex: 1 1 200px;
+}
+
+.filter-bar > .ant-space,
+.enterprise-filter > .ant-space,
+.filter-bar > .ant-btn,
+.enterprise-filter > .ant-btn {
+  flex: 0 0 auto;
 }
 
 .filter-bar.narrow {
@@ -658,7 +670,7 @@ p {
 .detail-layout {
   display: grid;
   grid-template-columns: 290px minmax(0, 1fr);
-  gap: 18px;
+  gap: 24px;
   align-items: start;
 }
 
@@ -784,6 +796,8 @@ p {
 .apply-panel .ant-card-body {
   display: grid;
   gap: 14px;
+  background: var(--surface-muted);
+  border-radius: var(--radius);
 }
 
 .drawer-job-summary {
@@ -843,6 +857,7 @@ p {
 .application-item-card .ant-card-body {
   display: grid;
   gap: 18px;
+  padding: 24px;
 }
 
 .application-item {
@@ -870,7 +885,7 @@ a:focus-visible,
 .ant-btn:focus-visible,
 .ant-input:focus,
 .ant-select-focused .ant-select-selector {
-  outline: 3px solid rgba(22, 101, 216, 0.18);
+  outline: 3px solid rgba(0, 179, 138, 0.2);
   outline-offset: 2px;
 }
 
@@ -1189,7 +1204,7 @@ a:focus-visible,
   inset: 0 0 auto;
   height: 92px;
   background:
-    linear-gradient(135deg, rgba(22, 101, 216, 0.86), rgba(0, 179, 138, 0.8)),
+    linear-gradient(135deg, var(--primary), var(--accent)),
     var(--surface-soft);
 }
 
@@ -1244,7 +1259,7 @@ a:focus-visible,
   height: 100dvh;
   padding: 22px 16px;
   background:
-    linear-gradient(180deg, rgba(22, 101, 216, 0.18), rgba(0, 179, 138, 0.12)),
+    linear-gradient(180deg, rgba(0, 179, 138, 0.18), rgba(0, 179, 138, 0.12)),
     var(--surface-strong);
   color: #eef4ff;
 }
