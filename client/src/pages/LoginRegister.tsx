@@ -82,7 +82,7 @@ export default function LoginRegister({ auth }: { auth: AuthContextValue }) {
 
   return (
     <section className="auth-layout auth-layout-polished">
-      <motion.div className="auth-visual auth-visual-upgraded" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}>
+      <motion.div className="auth-visual auth-visual-upgraded" initial={false} animate={{ opacity: 1, x: 0 }}>
         <img src={assetUrl('/assets/enterprise/developer-workspace.jpg')} alt="开发者求职工作台" />
         <div className="auth-visual-content">
           <span className="eyebrow"><Sparkles size={16} />Q_ITOffer Campus Hiring</span>

@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type { AuthContextValue } from '../App';
 import { api, assetUrl } from '../api/client';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../components/StateBlock';
+import { DEMO_APPLICATIONS } from '../data/catalog';
+import { isBackendUnavailable } from '../demoSession';
 import type { Application } from '../types';
 
 const statusText: Record<Application['status'], string> = {
@@ -31,6 +33,7 @@ const statusColor: Record<Application['status'], string> = {
 export default function Applications({ auth }: { auth: AuthContextValue }) {
   const { message } = App.useApp();
   const [items, setItems] = useState<Application[]>([]);
+  const [allItems, setAllItems] = useState<Application[]>([]);
   const [status, setStatus] = useState<'ALL' | Application['status']>('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -42,25 +45,49 @@ export default function Applications({ auth }: { auth: AuthContextValue }) {
     }
     setLoading(true);
     api.applications(status === 'ALL' ? '' : `?status=${status}`)
-      .then((result) => setItems(result.items))
-      .catch((err: Error) => setError(err.message))
+      .then((result) => {
+        setItems(result.items);
+        if (status === 'ALL') setAllItems(result.items);
+        setError('');
+      })
+      .catch((err: Error) => {
+        if (isBackendUnavailable(err)) {
+          const fallback = status === 'ALL' ? DEMO_APPLICATIONS : DEMO_APPLICATIONS.filter((item) => item.status === status);
+          setItems(fallback);
+          setAllItems(DEMO_APPLICATIONS);
+          setError('');
+        } else {
+          setError(err.message);
+        }
+      })
       .finally(() => setLoading(false));
   }, [auth.user, status]);
 
   const counts = useMemo(() => {
-    const next: Record<string, number> = { ALL: items.length };
-    items.forEach((item) => { next[item.status] = (next[item.status] || 0) + 1; });
+    const source = allItems.length ? allItems : items;
+    const next: Record<string, number> = { ALL: source.length };
+    source.forEach((item) => { next[item.status] = (next[item.status] || 0) + 1; });
     return next;
-  }, [items]);
+  }, [allItems, items]);
 
   async function respond(id: number, response: 'ACCEPTED' | 'DECLINED') {
     try {
       await api.respondInterview(id, response);
-      setItems((prev) => prev.map((item) => item.id === id ? { ...item, interview_response: response } : item));
+      updateResponse(id, response);
       message.success(response === 'ACCEPTED' ? '已接受面试' : '已婉拒面试');
     } catch (err) {
-      message.error((err as Error).message);
+      if (isBackendUnavailable(err)) {
+        updateResponse(id, response);
+        message.success(response === 'ACCEPTED' ? '已接受演示面试' : '已婉拒演示面试');
+      } else {
+        message.error((err as Error).message);
+      }
     }
+  }
+
+  function updateResponse(id: number, response: 'ACCEPTED' | 'DECLINED') {
+    setItems((prev) => prev.map((item) => item.id === id ? { ...item, interview_response: response } : item));
+    setAllItems((prev) => prev.map((item) => item.id === id ? { ...item, interview_response: response } : item));
   }
 
   if (auth.loading || loading) return <LoadingBlock />;

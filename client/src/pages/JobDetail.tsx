@@ -9,6 +9,8 @@ import { api, assetUrl } from '../api/client';
 import BreadcrumbTrail from '../components/BreadcrumbTrail';
 import JobCard from '../components/JobCard';
 import { ErrorBlock, LoadingBlock } from '../components/StateBlock';
+import { DEMO_JOBS } from '../data/catalog';
+import { isBackendUnavailable } from '../demoSession';
 import type { Job } from '../types';
 
 export default function JobDetail({ auth }: { auth: AuthContextValue }) {
@@ -27,12 +29,24 @@ export default function JobDetail({ auth }: { auth: AuthContextValue }) {
 
   useEffect(() => {
     setLoading(true);
+    setError('');
     api.job(id)
       .then((result) => {
         setJob(result.job);
         setRelated(result.related || []);
       })
-      .catch((err: Error) => setError(err.message))
+      .catch((err: Error) => {
+        const fallback = DEMO_JOBS.find((item) => String(item.id) === id);
+        if (fallback) {
+          setJob(fallback);
+          setRelated(
+            DEMO_JOBS.filter((item) => item.id !== fallback.id && (item.category === fallback.category || item.company_id === fallback.company_id)).slice(0, 3)
+          );
+          setError('');
+          return;
+        }
+        setError(err.message);
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -49,7 +63,14 @@ export default function JobDetail({ auth }: { auth: AuthContextValue }) {
       setDrawerOpen(false);
       toast.success('申请已提交');
     } catch (err) {
-      setError((err as Error).message);
+      if (isBackendUnavailable(err)) {
+        setFeedback('演示申请已提交，可在“我的申请”查看样例进度。');
+        setError('');
+        setDrawerOpen(false);
+        toast.success('演示申请已提交');
+      } else {
+        setError((err as Error).message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -69,7 +90,12 @@ export default function JobDetail({ auth }: { auth: AuthContextValue }) {
         toast.success('已收藏职位');
       }
     } catch (err) {
-      toast.error((err as Error).message);
+      if (isBackendUnavailable(err)) {
+        setJob({ ...job, favorited: !job.favorited });
+        toast.success(job.favorited ? '已取消演示收藏' : '已加入演示收藏');
+      } else {
+        toast.error((err as Error).message);
+      }
     } finally {
       setFavoriteBusy(false);
     }
@@ -125,7 +151,7 @@ export default function JobDetail({ auth }: { auth: AuthContextValue }) {
           <Card>
             <span className="eyebrow"><MapPin size={16} />在线申请</span>
             <h2>投递到 {job.company_name}</h2>
-            <p>提交后记录会进入“我的申请”，后台管理员可以处理状态。</p>
+            <p>提交后记录会进入“我的申请”，后台管理员可处理状态，前台会同步展示进度。</p>
             <Space direction="vertical" style={{ width: '100%' }}>
               <Button type="primary" block icon={<Send size={18} />} onClick={() => setDrawerOpen(true)}>
                 立即申请

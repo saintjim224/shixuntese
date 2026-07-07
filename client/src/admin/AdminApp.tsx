@@ -31,6 +31,7 @@ import {
 import type { AuthContextValue } from '../App';
 import { api } from '../api/client';
 import { LoadingBlock } from '../components/StateBlock';
+import { CATEGORY_OPTIONS, CITY_OPTIONS, EDUCATION_OPTIONS, EXPERIENCE_OPTIONS } from '../data/catalog';
 import type { AdminApplication, AdminDashboard, AdminUser, Company, Job, SystemLog } from '../types';
 
 type AdminFormInstance = FormInstance<Record<string, unknown>>;
@@ -400,7 +401,7 @@ function CompanyForm({ form, onFinish }: { form: AdminFormInstance; onFinish: (v
   return (
     <Form form={form} layout="vertical" className="resume-form" onFinish={onFinish}>
       <Form.Item name="name" label="企业名称" rules={[{ required: true }]}><Input /></Form.Item>
-      <Form.Item name="city" label="城市" rules={[{ required: true }]}><Input /></Form.Item>
+      <Form.Item name="city" label="城市" rules={[{ required: true }]}><Select showSearch options={CITY_OPTIONS} /></Form.Item>
       <Form.Item name="industry" label="行业" rules={[{ required: true }]}><Input /></Form.Item>
       <Form.Item name="scale" label="规模"><Input /></Form.Item>
       <Form.Item name="foundedYear" label="成立年份"><InputNumber style={{ width: '100%' }} /></Form.Item>
@@ -420,12 +421,12 @@ function JobForm({ form, companies, onFinish }: { form: AdminFormInstance; compa
     <Form form={form} layout="vertical" className="resume-form" onFinish={onFinish}>
       <Form.Item name="companyId" label="所属企业" rules={[{ required: true }]}><Select options={companies.map((item) => ({ value: item.id, label: item.name }))} /></Form.Item>
       <Form.Item name="title" label="职位名称" rules={[{ required: true }]}><Input /></Form.Item>
-      <Form.Item name="category" label="岗位方向" rules={[{ required: true }]}><Input /></Form.Item>
-      <Form.Item name="city" label="城市" rules={[{ required: true }]}><Input /></Form.Item>
+      <Form.Item name="category" label="岗位方向" rules={[{ required: true }]}><Select showSearch options={CATEGORY_OPTIONS} /></Form.Item>
+      <Form.Item name="city" label="城市" rules={[{ required: true }]}><Select showSearch options={CITY_OPTIONS} /></Form.Item>
       <Form.Item name="salaryMin" label="最低薪资"><InputNumber style={{ width: '100%' }} /></Form.Item>
       <Form.Item name="salaryMax" label="最高薪资"><InputNumber style={{ width: '100%' }} /></Form.Item>
-      <Form.Item name="education" label="学历"><Input /></Form.Item>
-      <Form.Item name="experience" label="经验"><Input /></Form.Item>
+      <Form.Item name="education" label="学历"><Select allowClear options={EDUCATION_OPTIONS.map((item) => ({ value: item, label: item }))} /></Form.Item>
+      <Form.Item name="experience" label="经验"><Select allowClear options={EXPERIENCE_OPTIONS.map((item) => ({ value: item, label: item }))} /></Form.Item>
       <Form.Item name="headcount" label="招聘人数"><InputNumber style={{ width: '100%' }} /></Form.Item>
       <Form.Item name="status" label="状态" initialValue="OPEN"><Select options={[{ value: 'OPEN', label: '开放' }, { value: 'CLOSED', label: '关闭' }]} /></Form.Item>
       <Form.Item className="wide" name="highlights" label="职位亮点"><Input placeholder="五险一金,弹性工作,技术氛围" /></Form.Item>

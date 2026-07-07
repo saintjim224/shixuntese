@@ -7,6 +7,7 @@ import { api, assetUrl } from '../api/client';
 import BreadcrumbTrail from '../components/BreadcrumbTrail';
 import JobCard from '../components/JobCard';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../components/StateBlock';
+import { DEMO_COMPANIES, DEMO_JOBS } from '../data/catalog';
 import type { Company, Job } from '../types';
 
 export default function CompanyDetail() {
@@ -18,13 +19,25 @@ export default function CompanyDetail() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    setLoading(true);
+    setError('');
     api.company(id)
       .then((result) => {
         setCompany(result.company);
         setJobs(result.jobs);
         setRecommended(result.recommended || []);
       })
-      .catch((err: Error) => setError(err.message))
+      .catch((err: Error) => {
+        const fallback = DEMO_COMPANIES.find((item) => String(item.id) === id);
+        if (fallback) {
+          setCompany(fallback);
+          setJobs(DEMO_JOBS.filter((job) => job.company_id === fallback.id));
+          setRecommended(DEMO_COMPANIES.filter((item) => item.id !== fallback.id).slice(0, 3));
+          setError('');
+          return;
+        }
+        setError(err.message);
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -101,7 +114,7 @@ export default function CompanyDetail() {
           <section className="section-head">
             <div>
               <h2>其他推荐企业</h2>
-              <p>按评分和更新时间推荐，便于继续浏览。</p>
+              <p>按评分和城市覆盖推荐，便于继续浏览。</p>
             </div>
           </section>
           <section className="company-strip">

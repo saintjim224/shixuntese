@@ -7,6 +7,14 @@ import { api, assetUrl } from '../api/client';
 import JobCard from '../components/JobCard';
 import PageHero from '../components/PageHero';
 import { CardGridSkeleton, EmptyBlock } from '../components/StateBlock';
+import {
+  CATEGORY_OPTIONS,
+  CITY_OPTIONS,
+  DEMO_JOBS,
+  EDUCATION_OPTIONS,
+  EXPERIENCE_OPTIONS,
+  SALARY_OPTIONS
+} from '../data/catalog';
 import type { Job, PlatformStats } from '../types';
 
 type Filters = {
@@ -19,140 +27,6 @@ type Filters = {
   sort: string;
   page: number;
 };
-
-const salaryOptions = [
-  { label: '不限薪资', value: '' },
-  { label: '5K 以下', value: '0-5000' },
-  { label: '5K-10K', value: '5000-10000' },
-  { label: '10K-20K', value: '10000-20000' },
-  { label: '20K 以上', value: '20000-0' }
-];
-
-const demoCities = ['成都', '杭州', '上海', '深圳'];
-const demoCategories = ['React 前端', 'Java 后端', '测试开发', '数据分析', '产品运营'];
-
-const demoJobs: Job[] = [
-  {
-    id: 91001,
-    company_id: 9001,
-    title: 'React 前端开发实习生',
-    category: 'React 前端',
-    salary_min: 7000,
-    salary_max: 11000,
-    city: '成都',
-    education: '本科及以上',
-    experience: '1年以内',
-    headcount: 4,
-    highlights: 'React,TypeScript,组件工程化',
-    description: '参与招聘平台前端业务迭代，负责职位搜索、简历投递和企业展示等核心模块体验优化。',
-    requirement_text: '熟悉 React、TypeScript 和基础工程化流程，有完整项目经验优先。',
-    status: 'OPEN',
-    posted_at: '2026-07-05T09:00:00+08:00',
-    company_name: '青软实训数字科技',
-    company_logo: '/assets/it-logo.png',
-    company_industry: '教育科技'
-  },
-  {
-    id: 91002,
-    company_id: 9002,
-    title: 'Java 后端开发实习生',
-    category: 'Java 后端',
-    salary_min: 8000,
-    salary_max: 13000,
-    city: '杭州',
-    education: '本科及以上',
-    experience: '1-3年',
-    headcount: 3,
-    highlights: 'Spring Boot,MySQL,接口设计',
-    description: '建设职位、企业、简历和投递流程 API，保障前后台数据一致性与权限边界。',
-    requirement_text: '理解 Spring Boot、RESTful API 和 MySQL 表结构设计。',
-    status: 'OPEN',
-    posted_at: '2026-07-04T10:20:00+08:00',
-    company_name: '云启招聘智能',
-    company_logo: '/assets/it-logo.png',
-    company_industry: 'SaaS'
-  },
-  {
-    id: 91003,
-    company_id: 9003,
-    title: '测试开发工程师',
-    category: '测试开发',
-    salary_min: 9000,
-    salary_max: 15000,
-    city: '上海',
-    education: '本科及以上',
-    experience: '1-3年',
-    headcount: 2,
-    highlights: '自动化测试,接口测试,质量平台',
-    description: '负责招聘流程关键链路的自动化测试与质量看板建设，提高发布稳定性。',
-    requirement_text: '熟悉接口测试、自动化测试框架和缺陷追踪流程。',
-    status: 'OPEN',
-    posted_at: '2026-07-03T14:00:00+08:00',
-    company_name: '星程质量实验室',
-    company_logo: '/assets/it-logo.png',
-    company_industry: '企业服务'
-  },
-  {
-    id: 91004,
-    company_id: 9004,
-    title: '数据分析实习生',
-    category: '数据分析',
-    salary_min: 6000,
-    salary_max: 10000,
-    city: '深圳',
-    education: '本科及以上',
-    experience: '不限',
-    headcount: 5,
-    highlights: 'SQL,BI 看板,业务分析',
-    description: '围绕职位转化、投递效率和企业活跃度做指标分析，输出可用于产品决策的洞察。',
-    requirement_text: '熟悉 SQL 和基础数据可视化，能把业务问题拆成指标。',
-    status: 'OPEN',
-    posted_at: '2026-07-02T11:30:00+08:00',
-    company_name: '明策数据咨询',
-    company_logo: '/assets/it-logo.png',
-    company_industry: '数据服务'
-  },
-  {
-    id: 91005,
-    company_id: 9005,
-    title: '产品运营实习生',
-    category: '产品运营',
-    salary_min: 5000,
-    salary_max: 8000,
-    city: '成都',
-    education: '专科及以上',
-    experience: '不限',
-    headcount: 2,
-    highlights: '用户反馈,内容运营,增长实验',
-    description: '维护校园招聘内容质量，跟进求职者反馈，协助优化岗位推荐和申请转化。',
-    requirement_text: '沟通清楚，能整理用户反馈并推进小步快跑的体验改进。',
-    status: 'OPEN',
-    posted_at: '2026-07-01T16:10:00+08:00',
-    company_name: '锐聘校园增长组',
-    company_logo: '/assets/it-logo.png',
-    company_industry: '招聘平台'
-  },
-  {
-    id: 91006,
-    company_id: 9006,
-    title: 'Web 全栈开发实习生',
-    category: 'Java 后端',
-    salary_min: 10000,
-    salary_max: 18000,
-    city: '上海',
-    education: '本科及以上',
-    experience: '3-5年',
-    headcount: 1,
-    highlights: 'React,Servlet,MySQL',
-    description: '连接前端体验和后端业务模型，负责职位详情、企业主页和申请状态的端到端实现。',
-    requirement_text: '具备前后端联调经验，理解基础安全、会话和表单校验。',
-    status: 'OPEN',
-    posted_at: '2026-06-30T13:40:00+08:00',
-    company_name: '栈桥研发中心',
-    company_logo: '/assets/it-logo.png',
-    company_industry: '互联网'
-  }
-];
 
 export default function Jobs() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -188,11 +62,11 @@ export default function Jobs() {
   }, []);
 
   const cityOptions = useMemo(
-    () => (stats?.cities.length ? stats.cities.map((item) => item.name) : demoCities).map((item) => ({ label: item, value: item })),
+    () => (stats?.cities.length ? stats.cities.map((item) => ({ label: item.name, value: item.name })) : CITY_OPTIONS),
     [stats]
   );
   const categoryOptions = useMemo(
-    () => (stats?.categories.length ? stats.categories.map((item) => item.name) : demoCategories).map((item) => ({ label: item, value: item })),
+    () => (stats?.categories.length ? stats.categories.map((item) => ({ label: item.name, value: item.name })) : CATEGORY_OPTIONS),
     [stats]
   );
 
@@ -210,15 +84,15 @@ export default function Jobs() {
     ...filters.category.map((item) => `方向：${item}`),
     filters.education && `学历：${filters.education}`,
     filters.experience && `经验：${filters.experience}`,
-    filters.salary && `薪资：${salaryOptions.find((item) => item.value === filters.salary)?.label}`
+    filters.salary && `薪资：${SALARY_OPTIONS.find((item) => item.value === filters.salary)?.label}`
   ].filter(Boolean) as string[];
 
   return (
     <div className="jobs-page">
       <PageHero
         eyebrow={<><SlidersHorizontal size={16} />职位检索</>}
-        title="发现适合你的 IT 岗位"
-        text="按关键词、城市、方向、薪资和经验筛选开放中的招聘岗位。"
+        title="覆盖新一线城市的 IT 岗位库"
+        text="按关键词、城市、方向、学历、经验和薪资筛选开放职位。前端离线预览和后端在线数据使用同一套岗位目录。"
         image={assetUrl('/assets/enterprise/developer-workspace.jpg')}
         alt="开发者办公桌"
       />
@@ -267,20 +141,20 @@ export default function Jobs() {
             allowClear
             placeholder="学历要求"
             value={filters.education || undefined}
-            options={['专科及以上', '本科及以上', '硕士及以上', '学历不限'].map((item) => ({ label: item, value: item }))}
+            options={EDUCATION_OPTIONS.map((item) => ({ label: item, value: item }))}
             onChange={(value) => setFilters((prev) => ({ ...prev, education: value || '' }))}
           />
           <Select
             allowClear
             placeholder="经验要求"
             value={filters.experience || undefined}
-            options={['不限', '1年以内', '1-3年', '3-5年'].map((item) => ({ label: item, value: item }))}
+            options={EXPERIENCE_OPTIONS.map((item) => ({ label: item, value: item }))}
             onChange={(value) => setFilters((prev) => ({ ...prev, experience: value || '' }))}
           />
           <Select
             placeholder="薪资范围"
             value={filters.salary}
-            options={salaryOptions}
+            options={SALARY_OPTIONS}
             onChange={(value) => setFilters((prev) => ({ ...prev, salary: value }))}
           />
           <Select
@@ -312,7 +186,7 @@ export default function Jobs() {
       {loading && <CardGridSkeleton />}
       {!loading && demoMode && (
         <div className="demo-data-note">
-          后端服务未连接，当前展示演示岗位用于前端预览。
+          后端服务未连接，当前展示合规生成的演示岗位，保证前台功能可完整预览。
         </div>
       )}
       {!loading && jobs.length === 0 && <EmptyBlock title="没有匹配职位" text="换一个关键词或清空筛选条件再试一次。" />}
@@ -343,14 +217,16 @@ export default function Jobs() {
 function filterDemoJobs(filters: Filters) {
   const keyword = filters.keyword.trim().toLowerCase();
   const [salaryMin, salaryMax] = filters.salary.split('-').map((item) => Number(item || 0));
-  const result = demoJobs.filter((job) => {
+  const result = DEMO_JOBS.filter((job) => {
     const haystack = [
       job.title,
       job.company_name,
+      job.company_industry,
       job.category,
       job.city,
       job.highlights,
-      job.description
+      job.description,
+      job.requirement_text
     ].join(' ').toLowerCase();
     const matchKeyword = !keyword || haystack.includes(keyword);
     const matchCity = filters.city.length === 0 || filters.city.includes(job.city);
@@ -362,7 +238,7 @@ function filterDemoJobs(filters: Filters) {
   });
   if (filters.sort === 'salary_desc') return [...result].sort((a, b) => b.salary_max - a.salary_max);
   if (filters.sort === 'salary_asc') return [...result].sort((a, b) => a.salary_min - b.salary_min);
-  return result;
+  return [...result].sort((a, b) => String(b.posted_at || '').localeCompare(String(a.posted_at || '')));
 }
 
 function JobListCard({ job }: { job: Job }) {

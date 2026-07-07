@@ -6,101 +6,11 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api, assetUrl } from '../api/client';
 import PageHero from '../components/PageHero';
 import { CardGridSkeleton, EmptyBlock } from '../components/StateBlock';
+import { DEMO_COMPANIES, industryBuckets, scaleBuckets } from '../data/catalog';
 import type { Company, StatBucket } from '../types';
 
-const demoIndustries: StatBucket[] = [
-  { name: '教育科技', value: 2 },
-  { name: 'SaaS', value: 2 },
-  { name: '数据服务', value: 1 },
-  { name: '企业服务', value: 1 }
-];
-
-const demoScales: StatBucket[] = [
-  { name: '50-150人', value: 2 },
-  { name: '150-500人', value: 3 },
-  { name: '500-1000人', value: 1 }
-];
-
-const demoCompanies: Company[] = [
-  {
-    id: 92001,
-    name: '青软实训数字科技',
-    logo_url: '/assets/it-logo.png',
-    city: '成都',
-    industry: '教育科技',
-    scale: '150-500人',
-    founded_year: 2018,
-    financing_stage: '成长型企业',
-    rating: 4.8,
-    description: '面向高校实训与企业招聘场景，提供课程、项目、人才推荐一体化服务。',
-    job_count: 8
-  },
-  {
-    id: 92002,
-    name: '云启招聘智能',
-    logo_url: '/assets/it-logo.png',
-    city: '杭州',
-    industry: 'SaaS',
-    scale: '150-500人',
-    founded_year: 2020,
-    financing_stage: 'A 轮',
-    rating: 4.7,
-    description: '为企业 HR 和校招团队提供岗位发布、候选人筛选与招聘数据分析工具。',
-    job_count: 12
-  },
-  {
-    id: 92003,
-    name: '星程质量实验室',
-    logo_url: '/assets/it-logo.png',
-    city: '上海',
-    industry: '企业服务',
-    scale: '50-150人',
-    founded_year: 2019,
-    financing_stage: 'Pre-A 轮',
-    rating: 4.6,
-    description: '专注 Web 与移动端质量工程，服务金融、教育和招聘平台的持续交付。',
-    job_count: 5
-  },
-  {
-    id: 92004,
-    name: '明策数据咨询',
-    logo_url: '/assets/it-logo.png',
-    city: '深圳',
-    industry: '数据服务',
-    scale: '150-500人',
-    founded_year: 2017,
-    financing_stage: 'B 轮',
-    rating: 4.9,
-    description: '围绕业务指标体系、BI 看板和用户增长分析，帮助产品团队做清晰决策。',
-    job_count: 6
-  },
-  {
-    id: 92005,
-    name: '锐聘校园增长组',
-    logo_url: '/assets/it-logo.png',
-    city: '成都',
-    industry: 'SaaS',
-    scale: '50-150人',
-    founded_year: 2021,
-    financing_stage: '种子轮',
-    rating: 4.5,
-    description: '聚焦校园招聘触达、职位内容运营和求职者申请转化优化。',
-    job_count: 4
-  },
-  {
-    id: 92006,
-    name: '栈桥研发中心',
-    logo_url: '/assets/it-logo.png',
-    city: '上海',
-    industry: '教育科技',
-    scale: '500-1000人',
-    founded_year: 2015,
-    financing_stage: '成熟企业',
-    rating: 4.8,
-    description: '提供企业级研发实训、岗位能力评估和产教融合项目交付。',
-    job_count: 10
-  }
-];
+const demoIndustries = industryBuckets();
+const demoScales = scaleBuckets();
 
 export default function Companies() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -154,8 +64,8 @@ export default function Companies() {
     <div className="companies-page">
       <PageHero
         eyebrow={<><Building2 size={16} />企业展示</>}
-        title="企业展示与在招机会"
-        text="按企业名称、行业和规模筛选招聘主体，优先查看在招职位更多、信息更完整的企业。"
+        title="15 家新一线城市企业，连接完整岗位谱系"
+        text="按企业名称、行业、规模或城市筛选招聘主体，优先查看在招职位更多、信息更完整的企业。"
         image={assetUrl('/assets/enterprise/team-collaboration.jpg')}
         alt="企业团队协作会议"
       />
@@ -172,6 +82,7 @@ export default function Companies() {
           />
           <Select
             allowClear
+            showSearch
             placeholder="行业"
             value={industry || undefined}
             options={(industries.length ? industries : demoIndustries).map((item) => ({ value: item.name, label: `${item.name} (${item.value})` }))}
@@ -191,10 +102,10 @@ export default function Companies() {
       {loading && <CardGridSkeleton count={6} />}
       {!loading && demoMode && (
         <div className="demo-data-note">
-          后端服务未连接，当前展示演示企业用于前端预览。
+          后端服务未连接，当前展示合规生成的演示企业，保证前台功能可完整预览。
         </div>
       )}
-      {!loading && companies.length === 0 && <EmptyBlock title="没有找到企业" text="请更换企业名称、行业或城市关键词。" />}
+      {!loading && companies.length === 0 && <EmptyBlock title="没有找到企业" text="请更换企业名称、行业、规模或城市关键词。" />}
       {!loading && (
         <motion.section className="company-grid" layout>
           {companies.map((company) => (
@@ -229,8 +140,8 @@ function filterDemoCompanies(params: URLSearchParams) {
   const keyword = (params.get('keyword') || '').trim().toLowerCase();
   const industry = params.get('industry') || '';
   const scale = params.get('scale') || '';
-  return demoCompanies.filter((company) => {
-    const haystack = [company.name, company.city, company.industry, company.description].join(' ').toLowerCase();
+  return DEMO_COMPANIES.filter((company) => {
+    const haystack = [company.name, company.city, company.industry, company.scale, company.description].join(' ').toLowerCase();
     const matchKeyword = !keyword || haystack.includes(keyword);
     const matchIndustry = !industry || company.industry === industry;
     const matchScale = !scale || company.scale === scale;

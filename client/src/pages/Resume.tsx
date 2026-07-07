@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { AuthContextValue } from '../App';
 import { api, assetUrl } from '../api/client';
 import { ErrorBlock, LoadingBlock } from '../components/StateBlock';
+import { CITY_OPTIONS } from '../data/catalog';
 import { demoResumePayload, isBackendUnavailable } from '../demoSession';
 import type { ResumePayload } from '../types';
 
@@ -343,7 +344,7 @@ export default function Resume({ auth }: { auth: AuthContextValue }) {
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="expectedCity" label="期望城市">
-            <Input />
+            <Select allowClear showSearch options={CITY_OPTIONS} />
           </Form.Item>
           <Form.Item name="expectedSalary" label="期望薪资">
             <Input placeholder="例如 12k-18k" />

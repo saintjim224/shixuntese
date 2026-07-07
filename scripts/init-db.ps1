@@ -34,5 +34,11 @@ FLUSH PRIVILEGES;
 "@
 
 $bootstrap | & $mysql @rootArgs
-& $mysql --default-character-set=utf8mb4 --protocol=tcp --host=127.0.0.1 --port=3307 --user=qitoffer_app --password=Qitoffer@2026 q_itoffer -e "SOURCE $($root -replace '\\','/')/database/schema.sql; SOURCE $($root -replace '\\','/')/database/seed.sql;"
+
+$sqlTemp = Join-Path $env:TEMP "qitoffer-sql"
+New-Item -ItemType Directory -Path $sqlTemp -Force | Out-Null
+Copy-Item "$root\database\schema.sql" "$sqlTemp\schema.sql" -Force
+Copy-Item "$root\database\seed.sql" "$sqlTemp\seed.sql" -Force
+
+& $mysql --default-character-set=utf8mb4 --protocol=tcp --host=127.0.0.1 --port=3307 --user=qitoffer_app --password=Qitoffer@2026 q_itoffer -e "SOURCE $($sqlTemp -replace '\\','/')/schema.sql; SOURCE $($sqlTemp -replace '\\','/')/seed.sql;"
 & $mysql --protocol=tcp --host=127.0.0.1 --port=3307 --user=qitoffer_app --password=Qitoffer@2026 -e "SELECT COUNT(*) AS users FROM q_itoffer.users; SELECT COUNT(*) AS jobs FROM q_itoffer.jobs;"

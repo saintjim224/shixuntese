@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, assetUrl } from '../api/client';
+import { isBackendUnavailable } from '../demoSession';
 import type { Job } from '../types';
 
 export default function JobCard({ job }: { job: Job }) {
@@ -25,7 +26,12 @@ export default function JobCard({ job }: { job: Job }) {
         message.success('已收藏职位');
       }
     } catch (err) {
-      message.error((err as Error).message);
+      if (isBackendUnavailable(err)) {
+        setFavorited((prev) => !prev);
+        message.success(favorited ? '已取消演示收藏' : '已加入演示收藏');
+      } else {
+        message.error((err as Error).message);
+      }
     } finally {
       setBusy(false);
     }
