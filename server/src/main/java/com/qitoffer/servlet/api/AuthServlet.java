@@ -48,6 +48,15 @@ public class AuthServlet extends HttpServlet {
         }
     }
 
+    @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        if ("/password".equals(path(req))) {
+            changePassword(req, resp);
+            return;
+        }
+        Json.error(resp, HttpServletResponse.SC_NOT_FOUND, "接口不存在");
+    }
+
     private void login(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Map<String, Object> body = Json.body(req);
         String username = str(body.get("username"));
@@ -98,6 +107,33 @@ public class AuthServlet extends HttpServlet {
         }
     }
 
+    private void changePassword(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Optional<Long> userId = Sessions.userId(req);
+        if (userId.isEmpty()) {
+            Json.error(resp, HttpServletResponse.SC_UNAUTHORIZED, "请先登录");
+            return;
+        }
+        Map<String, Object> body = Json.body(req);
+        String oldPassword = str(body.get("oldPassword"));
+        String newPassword = str(body.get("newPassword"));
+        if (oldPassword.isBlank() || newPassword.length() < 6) {
+            Json.error(resp, HttpServletResponse.SC_BAD_REQUEST, "旧密码必填，新密码至少 6 位");
+            return;
+        }
+        try {
+            Map<String, Object> user = Db.one("SELECT id, password_hash FROM users WHERE id = ?", userId.get()).orElse(null);
+            if (user == null || !Passwords.matches(oldPassword, user.get("password_hash"))) {
+                Json.error(resp, HttpServletResponse.SC_UNAUTHORIZED, "旧密码不正确");
+                return;
+            }
+            Db.update("UPDATE users SET password_hash = ? WHERE id = ?", Passwords.hash(newPassword), userId.get());
+            Db.insert("INSERT INTO system_logs (user_id, action, detail) VALUES (?, 'CHANGE_PASSWORD', '用户修改密码')", userId.get());
+            Json.ok(resp, Map.of("message", "密码已修改"));
+        } catch (SQLException e) {
+            Json.error(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
     private Map<String, Object> publicUser(Map<String, Object> source) {
         Map<String, Object> user = new LinkedHashMap<>();
         user.put("id", source.get("id"));
@@ -117,4 +153,3 @@ public class AuthServlet extends HttpServlet {
         return value == null ? "" : String.valueOf(value).trim();
     }
 }
-

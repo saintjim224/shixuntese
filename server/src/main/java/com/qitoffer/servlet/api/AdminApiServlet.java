@@ -49,6 +49,9 @@ public class AdminApiServlet extends HttpServlet {
                 case "applications":
                     applications(resp);
                     break;
+                case "resumes":
+                    resumes(resp);
+                    break;
                 case "users":
                     Json.ok(resp, Map.of("items", Db.query("SELECT id, username, role, full_name, email, phone, status, created_at FROM users ORDER BY created_at DESC")));
                     break;
@@ -57,6 +60,10 @@ public class AdminApiServlet extends HttpServlet {
                             "SELECT l.*, u.username FROM system_logs l LEFT JOIN users u ON u.id = l.user_id ORDER BY l.created_at DESC LIMIT 120")));
                     break;
                 default:
+                    if (path.matches("resumes/\\d+")) {
+                        resumeDetail(resp, idFrom(path));
+                        return;
+                    }
                     Json.error(resp, HttpServletResponse.SC_NOT_FOUND, "接口不存在");
             }
         } catch (SQLException e) {
@@ -125,6 +132,10 @@ public class AdminApiServlet extends HttpServlet {
                 Json.ok(resp, Map.of("message", "申请状态已更新"));
                 return;
             }
+            if (path.matches("users/\\d+")) {
+                updateUser(req, resp, idFrom(path), body);
+                return;
+            }
             Json.error(resp, HttpServletResponse.SC_NOT_FOUND, "接口不存在");
         } catch (SQLException | NumberFormatException e) {
             Json.error(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
@@ -166,6 +177,10 @@ public class AdminApiServlet extends HttpServlet {
                 Json.ok(resp, Map.of("message", "职位已删除"));
                 return;
             }
+            if (path.matches("users/\\d+")) {
+                deleteUser(req, resp, idFrom(path));
+                return;
+            }
             Json.error(resp, HttpServletResponse.SC_NOT_FOUND, "接口不存在");
         } catch (SQLException | NumberFormatException e) {
             Json.error(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
@@ -198,6 +213,41 @@ public class AdminApiServlet extends HttpServlet {
                         "LEFT JOIN applicant_profiles p ON p.user_id = u.id " +
                         "JOIN jobs j ON j.id = a.job_id JOIN companies c ON c.id = j.company_id " +
                         "ORDER BY a.applied_at DESC")));
+    }
+
+    private void resumes(HttpServletResponse resp) throws IOException, SQLException {
+        Json.ok(resp, Map.of("items", Db.query(
+                "SELECT u.id AS user_id, u.username, u.full_name, u.email, u.phone, u.status, u.created_at, " +
+                        "p.education, p.major, p.years_experience, p.expected_city, p.expected_salary, p.skills, p.updated_at, " +
+                        "COALESCE(app.application_count, 0) AS application_count " +
+                        "FROM users u " +
+                        "LEFT JOIN applicant_profiles p ON p.user_id = u.id " +
+                        "LEFT JOIN (SELECT applicant_id, COUNT(*) AS application_count FROM applications GROUP BY applicant_id) app ON app.applicant_id = u.id " +
+                        "WHERE u.role = 'APPLICANT' " +
+                        "ORDER BY COALESCE(p.updated_at, u.created_at) DESC")));
+    }
+
+    private void resumeDetail(HttpServletResponse resp, long userId) throws IOException, SQLException {
+        Map<String, Object> resume = Db.one(
+                "SELECT u.id AS user_id, u.username, u.status, u.full_name, u.email, u.phone, p.* " +
+                        "FROM users u LEFT JOIN applicant_profiles p ON p.user_id = u.id " +
+                        "WHERE u.id = ? AND u.role = 'APPLICANT'", userId).orElse(null);
+        if (resume == null) {
+            Json.error(resp, HttpServletResponse.SC_NOT_FOUND, "简历不存在");
+            return;
+        }
+        Json.ok(resp, Map.of(
+                "resume", resume,
+                "educations", Db.query("SELECT * FROM resume_educations WHERE user_id = ? ORDER BY sort_order, id", userId),
+                "experiences", Db.query("SELECT * FROM resume_experiences WHERE user_id = ? ORDER BY sort_order, id", userId),
+                "projects", Db.query("SELECT * FROM resume_projects WHERE user_id = ? ORDER BY sort_order, id", userId),
+                "skills", Db.query("SELECT * FROM resume_skills WHERE user_id = ? ORDER BY sort_order, id", userId),
+                "certificates", Db.query("SELECT * FROM resume_certificates WHERE user_id = ? ORDER BY sort_order, id", userId),
+                "applications", Db.query(
+                        "SELECT a.*, j.title, j.city, c.name AS company_name " +
+                                "FROM applications a JOIN jobs j ON j.id = a.job_id JOIN companies c ON c.id = j.company_id " +
+                                "WHERE a.applicant_id = ? ORDER BY a.applied_at DESC", userId)
+        ));
     }
 
     private void saveCompany(Map<String, Object> body, long id) throws SQLException {
@@ -235,6 +285,10 @@ public class AdminApiServlet extends HttpServlet {
             Json.error(resp, HttpServletResponse.SC_BAD_REQUEST, "用户名必填，密码至少 6 位");
             return;
         }
+        if (Db.one("SELECT id FROM users WHERE username = ?", username).isPresent()) {
+            Json.error(resp, HttpServletResponse.SC_CONFLICT, "用户名已存在");
+            return;
+        }
         long id = Db.insert("INSERT INTO users (username, password_hash, role, full_name, email, phone, status) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')",
                 username, Passwords.hash(password), role(body.get("role")), str(body.get("fullName")), str(body.get("email")), str(body.get("phone")));
         if ("APPLICANT".equals(role(body.get("role")))) {
@@ -242,6 +296,63 @@ public class AdminApiServlet extends HttpServlet {
         }
         log(req, "CREATE_USER", "新增用户 " + username);
         Json.created(resp, Map.of("message", "用户已新增"));
+    }
+
+    private void updateUser(HttpServletRequest req, HttpServletResponse resp, long id, Map<String, Object> body) throws SQLException, IOException {
+        Map<String, Object> existing = Db.one("SELECT * FROM users WHERE id = ?", id).orElse(null);
+        if (existing == null) {
+            Json.error(resp, HttpServletResponse.SC_NOT_FOUND, "用户不存在");
+            return;
+        }
+        String username = str(body.get("username"));
+        String fullName = str(body.get("fullName"));
+        String nextRole = role(body.get("role"));
+        String nextStatus = userStatus(body.get("status"));
+        String password = str(body.get("password"));
+        if (username.isBlank() || fullName.isBlank()) {
+            Json.error(resp, HttpServletResponse.SC_BAD_REQUEST, "用户名和姓名必填");
+            return;
+        }
+        if (!password.isBlank() && password.length() < 6) {
+            Json.error(resp, HttpServletResponse.SC_BAD_REQUEST, "密码至少 6 位");
+            return;
+        }
+        if (Db.one("SELECT id FROM users WHERE username = ? AND id <> ?", username, id).isPresent()) {
+            Json.error(resp, HttpServletResponse.SC_CONFLICT, "用户名已存在");
+            return;
+        }
+        long currentUserId = Sessions.userId(req).orElse(0L);
+        if (currentUserId == id && (!"ADMIN".equals(nextRole) || !"ACTIVE".equals(nextStatus))) {
+            Json.error(resp, HttpServletResponse.SC_BAD_REQUEST, "不能修改当前管理员的角色或状态");
+            return;
+        }
+        if (password.isBlank()) {
+            Db.update("UPDATE users SET username=?, role=?, full_name=?, email=?, phone=?, status=? WHERE id=?",
+                    username, nextRole, fullName, str(body.get("email")), str(body.get("phone")), nextStatus, id);
+        } else {
+            Db.update("UPDATE users SET username=?, password_hash=?, role=?, full_name=?, email=?, phone=?, status=? WHERE id=?",
+                    username, Passwords.hash(password), nextRole, fullName, str(body.get("email")), str(body.get("phone")), nextStatus, id);
+        }
+        if ("APPLICANT".equals(nextRole) && Db.one("SELECT id FROM applicant_profiles WHERE user_id = ?", id).isEmpty()) {
+            Db.insert("INSERT INTO applicant_profiles (user_id, education, years_experience) VALUES (?, '本科', 0)", id);
+        }
+        log(req, "UPDATE_USER", "更新用户 " + username);
+        Json.ok(resp, Map.of("message", "用户已保存"));
+    }
+
+    private void deleteUser(HttpServletRequest req, HttpServletResponse resp, long id) throws SQLException, IOException {
+        if (Sessions.userId(req).orElse(0L) == id) {
+            Json.error(resp, HttpServletResponse.SC_BAD_REQUEST, "不能删除当前登录管理员");
+            return;
+        }
+        Map<String, Object> existing = Db.one("SELECT username FROM users WHERE id = ?", id).orElse(null);
+        if (existing == null) {
+            Json.error(resp, HttpServletResponse.SC_NOT_FOUND, "用户不存在");
+            return;
+        }
+        Db.update("DELETE FROM users WHERE id = ?", id);
+        log(req, "DELETE_USER", "删除用户 " + existing.get("username"));
+        Json.ok(resp, Map.of("message", "用户已删除"));
     }
 
     private void toggleUser(HttpServletRequest req, HttpServletResponse resp, long id) throws SQLException, IOException {
@@ -306,5 +417,9 @@ public class AdminApiServlet extends HttpServlet {
 
     private String status(Object value) {
         return "CLOSED".equals(str(value)) ? "CLOSED" : "OPEN";
+    }
+
+    private String userStatus(Object value) {
+        return "DISABLED".equals(str(value)) ? "DISABLED" : "ACTIVE";
     }
 }

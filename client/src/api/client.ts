@@ -1,6 +1,8 @@
 import type {
   AdminApplication,
   AdminDashboard,
+  AdminResume,
+  AdminResumeDetail,
   AdminUser,
   Application,
   Company,
@@ -57,6 +59,8 @@ export const api = {
   register: (payload: { username: string; password: string; fullName: string; email: string; phone: string }) =>
     request<{ user: User }>('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
   logout: () => request<{ message: string }>('/auth/logout', { method: 'POST' }),
+  changePassword: (payload: { oldPassword: string; newPassword: string }) =>
+    request<{ message: string }>('/auth/password', { method: 'PUT', body: JSON.stringify(payload) }),
   jobs: (params = '') => request<PagedResult<Job>>(`/jobs${params}`),
   job: (id: string) => request<{ job: Job; related: Job[] }>(`/jobs/${id}`),
   apply: (id: string, message: string) =>
@@ -98,10 +102,15 @@ export const api = {
     applications: () => request<{ items: AdminApplication[] }>('/admin/applications'),
     updateApplicationStatus: (id: number, status: Application['status']) =>
       request<{ message: string }>(`/admin/applications/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+    resumes: () => request<{ items: AdminResume[] }>('/admin/resumes'),
+    resumeDetail: (userId: number) => request<AdminResumeDetail>(`/admin/resumes/${userId}`),
     users: () => request<{ items: AdminUser[] }>('/admin/users'),
     createUser: (payload: Record<string, unknown>) =>
       request<{ message: string }>('/admin/users', { method: 'POST', body: JSON.stringify(payload) }),
+    updateUser: (id: number, payload: Record<string, unknown>) =>
+      request<{ message: string }>(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
     toggleUser: (id: number) => request<{ message: string }>(`/admin/users/${id}/toggle`, { method: 'PATCH' }),
+    deleteUser: (id: number) => request<{ message: string }>(`/admin/users/${id}`, { method: 'DELETE' }),
     logs: () => request<{ items: SystemLog[] }>('/admin/logs')
   }
 };

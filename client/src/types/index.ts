@@ -194,6 +194,45 @@ export interface AdminUser {
   created_at?: string;
 }
 
+export interface AdminResume {
+  user_id: number;
+  username: string;
+  full_name: string;
+  email?: string;
+  phone?: string;
+  status: 'ACTIVE' | 'DISABLED';
+  education?: string;
+  major?: string;
+  years_experience?: number;
+  expected_city?: string;
+  expected_salary?: string;
+  skills?: string;
+  application_count: number;
+  updated_at?: string;
+  created_at?: string;
+}
+
+export interface AdminResumeApplication {
+  id: number;
+  status: Application['status'];
+  interview_response?: Application['interview_response'];
+  message?: string;
+  applied_at?: string;
+  title: string;
+  city?: string;
+  company_name: string;
+}
+
+export interface AdminResumeDetail {
+  resume: AdminResume & Resume;
+  educations: ResumeEducation[];
+  experiences: ResumeExperience[];
+  projects: ResumeProject[];
+  skills: ResumeSkill[];
+  certificates: ResumeCertificate[];
+  applications: AdminResumeApplication[];
+}
+
 export interface SystemLog {
   id: number;
   username?: string;
