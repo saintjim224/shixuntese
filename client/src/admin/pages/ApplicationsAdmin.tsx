@@ -44,12 +44,19 @@ export function ApplicationsAdmin() {
         dataSource={filtered}
         pagination={tablePagination(filtered.length)}
         scroll={{ x: 1100 }}
-        expandable={{ expandedRowRender: (record) => <div className="admin-expanded">留言：{record.message || '暂无'} / 技能：{record.skills || '未填写'}</div> }}
+        expandable={{
+          expandedRowRender: (record) => (
+            <div className="admin-expanded">
+              留言：{record.message || '暂无'} / 技能：{record.skills || '未填写'} / 附件：{record.resume_filename || '未上传'}
+            </div>
+          )
+        }}
         columns={[
           { title: '姓名', dataIndex: 'full_name', width: 120 },
           { title: '申请职位', dataIndex: 'title', width: 230 },
           { title: '所属企业', dataIndex: 'company_name', width: 240 },
           { title: '联系方式', width: 210, render: (_, record: AdminApplication) => `${record.email || ''} ${record.phone || ''}` },
+          { title: '简历附件', dataIndex: 'resume_filename', width: 180, render: (value?: string) => value || '未上传' },
           { title: '申请状态', width: 140, render: (_, record: AdminApplication) => (
             <Select value={record.status} style={{ width: 120 }} onChange={(value) => update(record.id, value)}>
               {Object.entries(applicationStatusText).map(([value, label]) => <Select.Option key={value} value={value}>{label}</Select.Option>)}

@@ -169,8 +169,16 @@ public class JobApiServlet extends HttpServlet {
             return;
         }
         Map<String, Object> body = Json.body(req);
-        String message = str(String.valueOf(body.getOrDefault("message", "我对该岗位很感兴趣，希望有机会进一步沟通。")));
-        long id = Db.insert("INSERT INTO applications (job_id, applicant_id, message) VALUES (?, ?, ?)", jobId, userId, message);
+        String message = str(body.get("message"));
+        if (message.isBlank()) {
+            message = "我对该岗位很感兴趣，希望有机会进一步沟通。";
+        }
+        Long resumeDocumentId = nullableLong(body.get("resumeDocumentId"));
+        if (resumeDocumentId != null && Db.one("SELECT id FROM resume_documents WHERE id = ? AND user_id = ?", resumeDocumentId, userId).isEmpty()) {
+            Json.error(resp, HttpServletResponse.SC_BAD_REQUEST, "请选择自己的有效简历附件");
+            return;
+        }
+        long id = Db.insert("INSERT INTO applications (job_id, applicant_id, resume_document_id, message) VALUES (?, ?, ?, ?)", jobId, userId, resumeDocumentId, message);
         Json.created(resp, Map.of("id", id, "message", "申请成功"));
     }
 
@@ -215,7 +223,23 @@ public class JobApiServlet extends HttpServlet {
         return Integer.parseInt(value.trim());
     }
 
-    private String str(String value) {
-        return value == null ? "" : value.trim();
+    private String str(Object value) {
+        return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    private Long nullableLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number) {
+            long number = ((Number) value).longValue();
+            return number <= 0 ? null : number;
+        }
+        String text = String.valueOf(value).trim();
+        if (text.isBlank()) {
+            return null;
+        }
+        long number = Long.parseLong(text);
+        return number <= 0 ? null : number;
     }
 }

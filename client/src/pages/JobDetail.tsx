@@ -1,6 +1,6 @@
 import MDEditor from '@uiw/react-md-editor';
-import { Alert, App, Button, Card, Descriptions, Drawer, Input, Space, Tag } from 'antd';
-import { ArrowLeft, Building2, CheckCircle2, Heart, MapPin, Send, Share2, WalletCards } from 'lucide-react';
+import { Alert, App, Button, Card, Descriptions, Drawer, Input, Select, Space, Tag, Upload } from 'antd';
+import { ArrowLeft, Building2, CheckCircle2, FileText, Heart, MapPin, Send, Share2, Upload as UploadIcon, WalletCards } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -11,7 +11,7 @@ import JobCard from '../components/JobCard';
 import { ErrorBlock, LoadingBlock } from '../components/StateBlock';
 import { DEMO_JOBS } from '../data/catalog';
 import { isBackendUnavailable } from '../demoSession';
-import type { Job } from '../types';
+import type { Job, ResumeDocument } from '../types';
 
 export default function JobDetail({ auth }: { auth: AuthContextValue }) {
   const { message: toast } = App.useApp();
@@ -25,6 +25,9 @@ export default function JobDetail({ auth }: { auth: AuthContextValue }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const [documents, setDocuments] = useState<ResumeDocument[]>([]);
+  const [resumeDocumentId, setResumeDocumentId] = useState<number | null>(null);
+  const [documentUploading, setDocumentUploading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,6 +53,19 @@ export default function JobDetail({ auth }: { auth: AuthContextValue }) {
       .finally(() => setLoading(false));
   }, [id]);
 
+  useEffect(() => {
+    if (!drawerOpen || !auth.user) return;
+    api.resumeDocuments()
+      .then((result) => {
+        setDocuments(result.items);
+        setResumeDocumentId((current) => current || result.items[0]?.id || null);
+      })
+      .catch(() => {
+        setDocuments([]);
+        setResumeDocumentId(null);
+      });
+  }, [auth.user, drawerOpen]);
+
   async function apply() {
     if (!auth.user) {
       navigate('/login');
@@ -57,7 +73,7 @@ export default function JobDetail({ auth }: { auth: AuthContextValue }) {
     }
     setSubmitting(true);
     try {
-      const result = await api.apply(id, message);
+      const result = await api.apply(id, { message, resumeDocumentId });
       setFeedback(result.message);
       setError('');
       setDrawerOpen(false);
@@ -73,6 +89,22 @@ export default function JobDetail({ auth }: { auth: AuthContextValue }) {
       }
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function uploadResumeDocument(file: File) {
+    const data = new FormData();
+    data.append('file', file);
+    setDocumentUploading(true);
+    try {
+      const result = await api.uploadResumeDocument(data);
+      setDocuments((prev) => [result.document, ...prev]);
+      setResumeDocumentId(result.document.id);
+      toast.success('简历文档已上传');
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setDocumentUploading(false);
     }
   }
 
@@ -198,14 +230,38 @@ export default function JobDetail({ auth }: { auth: AuthContextValue }) {
         <Alert
           type="info"
           showIcon
-          title={auth.user ? `将使用 ${auth.user.fullName} 的当前简历投递` : '登录后可以提交申请'}
+          title={auth.user ? `将使用 ${auth.user.fullName} 的简历投递` : '登录后可以提交申请'}
           style={{ marginBottom: 16 }}
         />
         <label className="drawer-field">
-          <span>申请留言</span>
+          <span>简历附件</span>
+          <Space.Compact style={{ width: '100%' }}>
+            <Select
+              allowClear
+              placeholder="选择已上传简历"
+              value={resumeDocumentId || undefined}
+              onChange={(value) => setResumeDocumentId(value || null)}
+              options={documents.map((item) => ({ value: item.id, label: item.original_filename }))}
+              suffixIcon={<FileText size={15} />}
+              style={{ flex: 1 }}
+            />
+            <Upload
+              accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp"
+              showUploadList={false}
+              beforeUpload={(file) => {
+                uploadResumeDocument(file);
+                return false;
+              }}
+            >
+              <Button icon={<UploadIcon size={16} />} loading={documentUploading}>上传</Button>
+            </Upload>
+          </Space.Compact>
+        </label>
+        <label className="drawer-field">
+          <span>申请留言（可选）</span>
           <Input.TextArea
             value={message}
-            rows={6}
+            rows={3}
             showCount
             maxLength={180}
             onChange={(event) => setMessage(event.target.value)}

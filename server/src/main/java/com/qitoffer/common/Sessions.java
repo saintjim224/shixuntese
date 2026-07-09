@@ -34,6 +34,28 @@ public final class Sessions {
         return session != null && role.equals(String.valueOf(session.getAttribute("role")));
     }
 
+    public static boolean hasAnyRole(HttpServletRequest req, String... roles) {
+        HttpSession session = req.getSession(false);
+        if (session == null) {
+            return false;
+        }
+        String currentRole = String.valueOf(session.getAttribute("role"));
+        for (String role : roles) {
+            if (role.equals(currentRole)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean isAdmin(HttpServletRequest req) {
+        return hasAnyRole(req, "ADMIN", "SUPER_ADMIN");
+    }
+
+    public static boolean isSuperAdmin(HttpServletRequest req) {
+        return hasRole(req, "SUPER_ADMIN");
+    }
+
     public static Map<String, Object> currentUser(HttpServletRequest req) {
         HttpSession session = req.getSession(false);
         Map<String, Object> user = new LinkedHashMap<>();
@@ -46,4 +68,3 @@ public final class Sessions {
         return user;
     }
 }
-

@@ -26,7 +26,8 @@ export const applicationStatusColor: Record<Application['status'], string> = {
 
 export const roleText: Record<Role, string> = {
   APPLICANT: '普通用户',
-  ADMIN: '系统管理员'
+  ADMIN: '系统管理员',
+  SUPER_ADMIN: '超级管理员'
 };
 
 export const userStatusText: Record<AdminUser['status'], string> = {

@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS resume_projects;
 DROP TABLE IF EXISTS resume_experiences;
 DROP TABLE IF EXISTS resume_educations;
 DROP TABLE IF EXISTS applications;
+DROP TABLE IF EXISTS resume_documents;
 DROP TABLE IF EXISTS jobs;
 DROP TABLE IF EXISTS companies;
 DROP TABLE IF EXISTS applicant_profiles;
@@ -20,7 +21,7 @@ CREATE TABLE users (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   username VARCHAR(50) NOT NULL UNIQUE,
   password_hash VARCHAR(64) NOT NULL,
-  role ENUM('APPLICANT', 'ADMIN') NOT NULL DEFAULT 'APPLICANT',
+  role ENUM('APPLICANT', 'ADMIN', 'SUPER_ADMIN') NOT NULL DEFAULT 'APPLICANT',
   full_name VARCHAR(80) NOT NULL,
   email VARCHAR(120),
   phone VARCHAR(30),
@@ -143,17 +144,33 @@ CREATE TABLE jobs (
   CONSTRAINT fk_job_company FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE resume_documents (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  original_filename VARCHAR(255) NOT NULL,
+  stored_filename VARCHAR(255) NOT NULL,
+  file_url VARCHAR(500) NOT NULL,
+  mime_type VARCHAR(120),
+  file_size BIGINT NOT NULL DEFAULT 0,
+  parsed_text MEDIUMTEXT,
+  analysis_json MEDIUMTEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_resume_document_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE applications (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   job_id BIGINT NOT NULL,
   applicant_id BIGINT NOT NULL,
+  resume_document_id BIGINT,
   status ENUM('SUBMITTED', 'VIEWED', 'INVITED', 'REJECTED') NOT NULL DEFAULT 'SUBMITTED',
   message VARCHAR(500),
   interview_response ENUM('PENDING', 'ACCEPTED', 'DECLINED') NOT NULL DEFAULT 'PENDING',
   applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uk_job_applicant (job_id, applicant_id),
   CONSTRAINT fk_application_job FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
-  CONSTRAINT fk_application_user FOREIGN KEY (applicant_id) REFERENCES users(id) ON DELETE CASCADE
+  CONSTRAINT fk_application_user FOREIGN KEY (applicant_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_application_resume_document FOREIGN KEY (resume_document_id) REFERENCES resume_documents(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE job_favorites (

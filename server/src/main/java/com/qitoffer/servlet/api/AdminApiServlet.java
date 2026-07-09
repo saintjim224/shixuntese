@@ -199,18 +199,21 @@ public class AdminApiServlet extends HttpServlet {
         payload.put("statusStats", Db.query("SELECT status AS name, COUNT(*) AS value FROM applications GROUP BY status ORDER BY value DESC"));
         payload.put("trendStats", Db.query("SELECT DATE(applied_at) AS name, COUNT(*) AS value FROM applications GROUP BY DATE(applied_at) ORDER BY name DESC LIMIT 14"));
         payload.put("recentApplications", Db.query(
-                "SELECT a.*, u.full_name, j.title, c.name AS company_name " +
+                "SELECT a.*, rd.original_filename AS resume_filename, u.full_name, j.title, c.name AS company_name " +
                         "FROM applications a JOIN users u ON u.id = a.applicant_id " +
                         "JOIN jobs j ON j.id = a.job_id JOIN companies c ON c.id = j.company_id " +
+                        "LEFT JOIN resume_documents rd ON rd.id = a.resume_document_id " +
                         "ORDER BY a.applied_at DESC LIMIT 8"));
         Json.ok(resp, payload);
     }
 
     private void applications(HttpServletResponse resp) throws IOException, SQLException {
         Json.ok(resp, Map.of("items", Db.query(
-                "SELECT a.*, u.full_name, u.email, u.phone, p.education, p.major, p.skills, j.title, c.name AS company_name " +
+                "SELECT a.*, rd.original_filename AS resume_filename, rd.file_url AS resume_file_url, " +
+                        "u.full_name, u.email, u.phone, p.education, p.major, p.skills, j.title, c.name AS company_name " +
                         "FROM applications a JOIN users u ON u.id = a.applicant_id " +
                         "LEFT JOIN applicant_profiles p ON p.user_id = u.id " +
+                        "LEFT JOIN resume_documents rd ON rd.id = a.resume_document_id " +
                         "JOIN jobs j ON j.id = a.job_id JOIN companies c ON c.id = j.company_id " +
                         "ORDER BY a.applied_at DESC")));
     }
@@ -244,8 +247,9 @@ public class AdminApiServlet extends HttpServlet {
                 "skills", Db.query("SELECT * FROM resume_skills WHERE user_id = ? ORDER BY sort_order, id", userId),
                 "certificates", Db.query("SELECT * FROM resume_certificates WHERE user_id = ? ORDER BY sort_order, id", userId),
                 "applications", Db.query(
-                        "SELECT a.*, j.title, j.city, c.name AS company_name " +
+                        "SELECT a.*, rd.original_filename AS resume_filename, rd.file_url AS resume_file_url, j.title, j.city, c.name AS company_name " +
                                 "FROM applications a JOIN jobs j ON j.id = a.job_id JOIN companies c ON c.id = j.company_id " +
+                                "LEFT JOIN resume_documents rd ON rd.id = a.resume_document_id " +
                                 "WHERE a.applicant_id = ? ORDER BY a.applied_at DESC", userId)
         ));
     }
@@ -289,9 +293,13 @@ public class AdminApiServlet extends HttpServlet {
             Json.error(resp, HttpServletResponse.SC_CONFLICT, "用户名已存在");
             return;
         }
+        String nextRole = role(body.get("role"));
+        if (!canAssignRole(req, resp, nextRole)) {
+            return;
+        }
         long id = Db.insert("INSERT INTO users (username, password_hash, role, full_name, email, phone, status) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')",
-                username, Passwords.hash(password), role(body.get("role")), str(body.get("fullName")), str(body.get("email")), str(body.get("phone")));
-        if ("APPLICANT".equals(role(body.get("role")))) {
+                username, Passwords.hash(password), nextRole, str(body.get("fullName")), str(body.get("email")), str(body.get("phone")));
+        if ("APPLICANT".equals(nextRole)) {
             Db.insert("INSERT INTO applicant_profiles (user_id, education, years_experience) VALUES (?, '本科', 0)", id);
         }
         log(req, "CREATE_USER", "新增用户 " + username);
@@ -309,6 +317,18 @@ public class AdminApiServlet extends HttpServlet {
         String nextRole = role(body.get("role"));
         String nextStatus = userStatus(body.get("status"));
         String password = str(body.get("password"));
+        String existingRole = str(existing.get("role"));
+        if ("SUPER_ADMIN".equals(existingRole) && !Sessions.isSuperAdmin(req)) {
+            Json.error(resp, HttpServletResponse.SC_FORBIDDEN, "只有超级管理员可以修改超级管理员账号");
+            return;
+        }
+        if ("ADMIN".equals(existingRole) && !Sessions.isSuperAdmin(req)) {
+            Json.error(resp, HttpServletResponse.SC_FORBIDDEN, "只有超级管理员可以修改管理员账号");
+            return;
+        }
+        if (!canAssignRole(req, resp, nextRole)) {
+            return;
+        }
         if (username.isBlank() || fullName.isBlank()) {
             Json.error(resp, HttpServletResponse.SC_BAD_REQUEST, "用户名和姓名必填");
             return;
@@ -322,7 +342,7 @@ public class AdminApiServlet extends HttpServlet {
             return;
         }
         long currentUserId = Sessions.userId(req).orElse(0L);
-        if (currentUserId == id && (!"ADMIN".equals(nextRole) || !"ACTIVE".equals(nextStatus))) {
+        if (currentUserId == id && (!isAdminRole(nextRole) || !"ACTIVE".equals(nextStatus))) {
             Json.error(resp, HttpServletResponse.SC_BAD_REQUEST, "不能修改当前管理员的角色或状态");
             return;
         }
@@ -345,9 +365,18 @@ public class AdminApiServlet extends HttpServlet {
             Json.error(resp, HttpServletResponse.SC_BAD_REQUEST, "不能删除当前登录管理员");
             return;
         }
-        Map<String, Object> existing = Db.one("SELECT username FROM users WHERE id = ?", id).orElse(null);
+        Map<String, Object> existing = Db.one("SELECT username, role FROM users WHERE id = ?", id).orElse(null);
         if (existing == null) {
             Json.error(resp, HttpServletResponse.SC_NOT_FOUND, "用户不存在");
+            return;
+        }
+        String existingRole = str(existing.get("role"));
+        if ("SUPER_ADMIN".equals(existingRole)) {
+            Json.error(resp, HttpServletResponse.SC_BAD_REQUEST, "不能删除超级管理员");
+            return;
+        }
+        if ("ADMIN".equals(existingRole) && !Sessions.isSuperAdmin(req)) {
+            Json.error(resp, HttpServletResponse.SC_FORBIDDEN, "只有超级管理员可以删除管理员账号");
             return;
         }
         Db.update("DELETE FROM users WHERE id = ?", id);
@@ -356,17 +385,43 @@ public class AdminApiServlet extends HttpServlet {
     }
 
     private void toggleUser(HttpServletRequest req, HttpServletResponse resp, long id) throws SQLException, IOException {
-        Db.update("UPDATE users SET status = IF(status = 'ACTIVE', 'DISABLED', 'ACTIVE') WHERE id = ? AND role <> 'ADMIN'", id);
+        if (Sessions.userId(req).orElse(0L) == id) {
+            Json.error(resp, HttpServletResponse.SC_BAD_REQUEST, "不能停用当前登录管理员");
+            return;
+        }
+        Map<String, Object> existing = Db.one("SELECT username, role FROM users WHERE id = ?", id).orElse(null);
+        if (existing == null) {
+            Json.error(resp, HttpServletResponse.SC_NOT_FOUND, "用户不存在");
+            return;
+        }
+        String existingRole = str(existing.get("role"));
+        if ("SUPER_ADMIN".equals(existingRole)) {
+            Json.error(resp, HttpServletResponse.SC_BAD_REQUEST, "不能停用超级管理员");
+            return;
+        }
+        if ("ADMIN".equals(existingRole) && !Sessions.isSuperAdmin(req)) {
+            Json.error(resp, HttpServletResponse.SC_FORBIDDEN, "只有超级管理员可以停用管理员账号");
+            return;
+        }
+        Db.update("UPDATE users SET status = IF(status = 'ACTIVE', 'DISABLED', 'ACTIVE') WHERE id = ?", id);
         log(req, "TOGGLE_USER", "切换用户状态 ID=" + id);
         Json.ok(resp, Map.of("message", "用户状态已更新"));
     }
 
     private boolean ensureAdmin(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        if (Sessions.hasRole(req, "ADMIN")) {
+        if (Sessions.isAdmin(req)) {
             return true;
         }
         Json.error(resp, HttpServletResponse.SC_UNAUTHORIZED, "请先以管理员身份登录");
         return false;
+    }
+
+    private boolean canAssignRole(HttpServletRequest req, HttpServletResponse resp, String nextRole) throws IOException {
+        if (isAdminRole(nextRole) && !Sessions.isSuperAdmin(req)) {
+            Json.error(resp, HttpServletResponse.SC_FORBIDDEN, "只有超级管理员可以设置管理员角色");
+            return false;
+        }
+        return true;
     }
 
     private void log(HttpServletRequest req, String action, String detail) throws SQLException {
@@ -412,7 +467,15 @@ public class AdminApiServlet extends HttpServlet {
     }
 
     private String role(Object value) {
-        return "ADMIN".equals(str(value)) ? "ADMIN" : "APPLICANT";
+        String role = str(value);
+        if ("SUPER_ADMIN".equals(role)) {
+            return "SUPER_ADMIN";
+        }
+        return "ADMIN".equals(role) ? "ADMIN" : "APPLICANT";
+    }
+
+    private boolean isAdminRole(String role) {
+        return "ADMIN".equals(role) || "SUPER_ADMIN".equals(role);
     }
 
     private String status(Object value) {

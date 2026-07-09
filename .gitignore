@@ -2,6 +2,14 @@ client/node_modules/
 client/dist/
 client/tsconfig.tsbuildinfo
 client/node_modules/.tmp/
+client/.env.local
 server/target/
+rag/.env
+rag/.venv/
+rag/index.sqlite3
+rag/uploads/
+rag/__pycache__/
+rag/**/*.pyc
+scripts/__pycache__/
+scripts/**/*.pyc
 *.log
-

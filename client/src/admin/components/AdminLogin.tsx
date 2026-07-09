@@ -31,7 +31,7 @@ export function AdminLogin({ auth }: { auth: AuthContextValue }) {
             <p>请输入管理员账号进入后台管理系统。</p>
           </div>
         </div>
-        <Form layout="vertical" initialValues={{ username: 'admin', password: 'admin123' }} onFinish={submit}>
+        <Form layout="vertical" initialValues={{ username: 'Saintjim', password: '123456' }} onFinish={submit}>
           <Form.Item name="username" label="管理员账号" rules={[{ required: true, message: '请输入管理员账号' }]}>
             <Input autoComplete="username" />
           </Form.Item>

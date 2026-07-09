@@ -14,7 +14,7 @@ import { UsersAdmin } from './pages/UsersAdmin';
 
 export default function AdminApp({ auth }: { auth: AuthContextValue }) {
   if (auth.loading) return <LoadingBlock />;
-  if (auth.user?.role !== 'ADMIN') return <AdminLogin auth={auth} />;
+  if (!auth.user || !['ADMIN', 'SUPER_ADMIN'].includes(auth.user.role)) return <AdminLogin auth={auth} />;
 
   return (
     <AdminShell auth={auth}>
@@ -24,7 +24,7 @@ export default function AdminApp({ auth }: { auth: AuthContextValue }) {
         <Route path="jobs" element={<JobsAdmin />} />
         <Route path="companies" element={<CompaniesAdmin />} />
         <Route path="resumes" element={<ResumesAdmin />} />
-        <Route path="users" element={<UsersAdmin currentUserId={auth.user.id} />} />
+        <Route path="users" element={<UsersAdmin currentUserId={auth.user.id} currentRole={auth.user.role} />} />
         <Route path="system" element={<LogsAdmin />} />
         <Route path="logs" element={<LogsAdmin />} />
         <Route path="password" element={<PasswordAdmin />} />

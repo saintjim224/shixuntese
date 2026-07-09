@@ -40,9 +40,6 @@ export default function LoginRegister({ auth }: { auth: AuthContextValue }) {
 
   useEffect(() => {
     form.resetFields();
-    if (mode === 'login') {
-      form.setFieldsValue({ username: 'applicant', password: 'applicant123' });
-    }
   }, [form, mode]);
 
   async function submit(values: LoginValues) {
@@ -71,7 +68,7 @@ export default function LoginRegister({ auth }: { auth: AuthContextValue }) {
           navigate('/resume');
           return;
         }
-        setNotice('当前处于前端演示模式，请使用 applicant / applicant123 进入本地体验。');
+        setNotice('当前处于前端演示模式，请输入你的演示账号进入本地体验。');
       } else {
         setFormError((err as Error).message || '登录没有完成，请稍后再试。');
       }
@@ -110,7 +107,7 @@ export default function LoginRegister({ auth }: { auth: AuthContextValue }) {
           ]}
         />
         <h1>{mode === 'login' ? '求职者登录' : '创建求职者账号'}</h1>
-        <p>演示账号已自动填入。后端未启动时，点击登录会进入本地体验模式。</p>
+        <p>请输入你的账号密码。后端未启动时，可用演示账号进入本地体验模式。</p>
         {notice && (
           <div className="auth-inline-note">
             <CheckCircle2 size={17} />
@@ -123,9 +120,9 @@ export default function LoginRegister({ auth }: { auth: AuthContextValue }) {
             <span>{formError}</span>
           </div>
         )}
-        <Form form={form} layout="vertical" onFinish={submit} className="form-stack">
+        <Form form={form} layout="vertical" onFinish={submit} className="form-stack" autoComplete="off">
           <Form.Item name="username" label="用户名" rules={[{ required: true, message: '请输入用户名' }]}>
-            <Input autoComplete="username" />
+            <Input autoComplete="off" />
           </Form.Item>
           {mode === 'register' && (
             <Form.Item name="fullName" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
@@ -143,7 +140,7 @@ export default function LoginRegister({ auth }: { auth: AuthContextValue }) {
             </Form.Item>
           )}
           <Form.Item name="password" label="密码" rules={[{ required: true, min: 6, message: '密码至少 6 位' }]}>
-            <Input.Password autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
+            <Input.Password autoComplete="new-password" />
           </Form.Item>
           {mode === 'register' && (
             <Progress

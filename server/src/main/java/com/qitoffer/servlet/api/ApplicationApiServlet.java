@@ -24,8 +24,10 @@ public class ApplicationApiServlet extends HttpServlet {
         try {
             String status = str(req.getParameter("status"));
             Json.ok(resp, Map.of("items", Db.query(
-                    "SELECT a.*, j.title, j.city, j.salary_min, j.salary_max, c.name AS company_name, c.logo_url AS company_logo " +
+                    "SELECT a.*, rd.original_filename AS resume_filename, rd.file_url AS resume_file_url, " +
+                            "j.title, j.city, j.salary_min, j.salary_max, c.name AS company_name, c.logo_url AS company_logo " +
                             "FROM applications a JOIN jobs j ON j.id = a.job_id JOIN companies c ON c.id = j.company_id " +
+                            "LEFT JOIN resume_documents rd ON rd.id = a.resume_document_id " +
                             "WHERE a.applicant_id = ? AND (? = '' OR a.status = ?) ORDER BY a.applied_at DESC",
                     userId.get(), status, status)));
         } catch (SQLException e) {

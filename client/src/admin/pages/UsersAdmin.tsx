@@ -2,14 +2,14 @@ import { App, Button, Form, Input, Modal, Select, Space, Table } from 'antd';
 import { Save, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client';
-import type { AdminUser } from '../../types';
+import type { AdminUser, Role } from '../../types';
 import { roleOptions, userStatusOptions } from '../constants';
 import { AdminCrudShell, FilterBar } from '../components/PageParts';
 import { renderRole, renderUserStatus } from '../renderers';
 import type { FilterMap } from '../types';
 import { exactOrEmpty, tablePagination, textIncludes } from '../utils';
 
-export function UsersAdmin({ currentUserId }: { currentUserId: number }) {
+export function UsersAdmin({ currentUserId, currentRole }: { currentUserId: number; currentRole: Role }) {
   const { message, modal } = App.useApp();
   const [items, setItems] = useState<AdminUser[]>([]);
   const [filters, setFilters] = useState<FilterMap>({});
@@ -28,6 +28,12 @@ export function UsersAdmin({ currentUserId }: { currentUserId: number }) {
     exactOrEmpty(item.role, filters.role) &&
     exactOrEmpty(item.status, filters.status)
   )), [items, filters]);
+  const isCurrentSuperAdmin = currentRole === 'SUPER_ADMIN';
+  const isProtectedAccount = (record: AdminUser) => (
+    record.id === currentUserId ||
+    record.role === 'SUPER_ADMIN' ||
+    (record.role === 'ADMIN' && !isCurrentSuperAdmin)
+  );
 
   async function save(values: Record<string, unknown>) {
     if (editing) await api.admin.updateUser(editing.id, values);
@@ -93,9 +99,9 @@ export function UsersAdmin({ currentUserId }: { currentUserId: number }) {
             width: 240,
             render: (_, record: AdminUser) => (
               <Space>
-                <Button size="small" onClick={() => edit(record)}>修改</Button>
-                <Button size="small" disabled={record.id === currentUserId || record.role === 'ADMIN'} onClick={() => toggle(record)}>切换状态</Button>
-                <Button size="small" danger disabled={record.id === currentUserId} onClick={() => remove(record)} icon={<Trash2 size={14} />}>删除</Button>
+                <Button size="small" disabled={record.role === 'SUPER_ADMIN' && !isCurrentSuperAdmin} onClick={() => edit(record)}>修改</Button>
+                <Button size="small" disabled={isProtectedAccount(record)} onClick={() => toggle(record)}>切换状态</Button>
+                <Button size="small" danger disabled={isProtectedAccount(record)} onClick={() => remove(record)} icon={<Trash2 size={14} />}>删除</Button>
               </Space>
             )
           }

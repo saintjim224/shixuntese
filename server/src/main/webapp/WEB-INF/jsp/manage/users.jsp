@@ -17,6 +17,7 @@
       <select name="role">
         <option value="APPLICANT">求职者</option>
         <option value="ADMIN">管理员</option>
+        <option value="SUPER_ADMIN">超级管理员</option>
       </select>
     </label>
     <label class="field"><span>姓名</span><input name="fullName" required></label>
@@ -43,7 +44,7 @@
           <td>${user.email}<br>${user.phone}</td>
           <td><span class="badge ${user.status == 'ACTIVE' ? 'success' : 'danger'}">${user.status}</span></td>
           <td>
-            <c:if test="${user.role != 'ADMIN'}">
+            <c:if test="${user.role != 'ADMIN' && user.role != 'SUPER_ADMIN'}">
               <form method="post" action="${ctx}/manage/users/toggle">
                 <input type="hidden" name="id" value="${user.id}">
                 <button class="btn secondary" type="submit">切换状态</button>

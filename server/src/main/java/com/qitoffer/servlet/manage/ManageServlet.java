@@ -120,7 +120,7 @@ public class ManageServlet extends HttpServlet {
         String username = req.getParameter("username");
         String password = req.getParameter("password");
         Optional<Map<String, Object>> user = Db.one(
-                "SELECT * FROM users WHERE username = ? AND role = 'ADMIN' AND status = 'ACTIVE'", username);
+                "SELECT * FROM users WHERE username = ? AND role IN ('ADMIN', 'SUPER_ADMIN') AND status = 'ACTIVE'", username);
         if (user.isPresent() && Passwords.matches(password, user.get().get("password_hash"))) {
             Sessions.login(req, user.get());
             log(req, "ADMIN_LOGIN", "管理员登录");
@@ -221,9 +221,17 @@ public class ManageServlet extends HttpServlet {
 
     private void saveUser(HttpServletRequest req, HttpServletResponse resp) throws SQLException, IOException {
         String password = p(req, "password");
+        String role = p(req, "role");
+        if (!"ADMIN".equals(role) && !"SUPER_ADMIN".equals(role)) {
+            role = "APPLICANT";
+        }
+        if (("ADMIN".equals(role) || "SUPER_ADMIN".equals(role)) && !Sessions.isSuperAdmin(req)) {
+            resp.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
         long id = Db.insert("INSERT INTO users (username, password_hash, role, full_name, email, phone, status) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')",
-                p(req, "username"), Passwords.hash(password), p(req, "role"), p(req, "fullName"), p(req, "email"), p(req, "phone"));
-        if ("APPLICANT".equals(p(req, "role"))) {
+                p(req, "username"), Passwords.hash(password), role, p(req, "fullName"), p(req, "email"), p(req, "phone"));
+        if ("APPLICANT".equals(role)) {
             Db.insert("INSERT INTO applicant_profiles (user_id, education, years_experience) VALUES (?, '本科', 0)", id);
         }
         log(req, "CREATE_USER", "新增用户 " + p(req, "username"));
@@ -231,7 +239,7 @@ public class ManageServlet extends HttpServlet {
     }
 
     private void toggleUser(HttpServletRequest req, HttpServletResponse resp) throws SQLException, IOException {
-        Db.update("UPDATE users SET status = IF(status = 'ACTIVE', 'DISABLED', 'ACTIVE') WHERE id = ? AND role <> 'ADMIN'", id(req, "id"));
+        Db.update("UPDATE users SET status = IF(status = 'ACTIVE', 'DISABLED', 'ACTIVE') WHERE id = ? AND role NOT IN ('ADMIN', 'SUPER_ADMIN')", id(req, "id"));
         log(req, "TOGGLE_USER", "切换用户状态 ID=" + req.getParameter("id"));
         resp.sendRedirect(req.getContextPath() + "/manage/users");
     }
@@ -241,7 +249,7 @@ public class ManageServlet extends HttpServlet {
     }
 
     private boolean ensureAdmin(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        if (Sessions.hasRole(req, "ADMIN")) {
+        if (Sessions.isAdmin(req)) {
             return true;
         }
         resp.sendRedirect(req.getContextPath() + "/manage/login");

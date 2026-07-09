@@ -20,11 +20,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.StringJoiner;
 
-@MultipartConfig(maxFileSize = 3 * 1024 * 1024)
+@MultipartConfig(maxFileSize = 10 * 1024 * 1024, maxRequestSize = 12 * 1024 * 1024)
 @WebServlet("/api/resume/*")
 public class ResumeApiServlet extends HttpServlet {
+    private static final Set<String> DOCUMENT_EXTENSIONS = Set.of(".pdf", ".docx", ".txt", ".png", ".jpg", ".jpeg", ".webp");
+
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Optional<Long> userId = requireApplicant(req, resp);
@@ -35,6 +38,10 @@ public class ResumeApiServlet extends HttpServlet {
             String path = cleanPath(req);
             if (path.isBlank()) {
                 Json.ok(resp, loadResumePayload(userId.get()));
+                return;
+            }
+            if ("documents".equals(path)) {
+                Json.ok(resp, Map.of("items", listDocuments(userId.get())));
                 return;
             }
             Module module = module(path);
@@ -52,6 +59,10 @@ public class ResumeApiServlet extends HttpServlet {
         }
         try {
             String path = cleanPath(req);
+            if (path.matches("documents/\\d+/analysis")) {
+                updateDocumentAnalysis(req, resp, userId.get(), pathId(path));
+                return;
+            }
             if (path.isBlank()) {
                 saveBaseResume(req, resp, userId.get());
                 return;
@@ -77,6 +88,10 @@ public class ResumeApiServlet extends HttpServlet {
             uploadPhoto(req, resp, userId.get());
             return;
         }
+        if ("documents".equals(path)) {
+            uploadDocument(req, resp, userId.get());
+            return;
+        }
         try {
             Module module = module(path);
             Map<String, Object> body = Json.body(req);
@@ -95,6 +110,10 @@ public class ResumeApiServlet extends HttpServlet {
         }
         try {
             String path = cleanPath(req);
+            if (path.matches("documents/\\d+")) {
+                deleteDocument(resp, userId.get(), pathId(path));
+                return;
+            }
             Module module = module(path);
             long id = pathId(path);
             Db.update("DELETE FROM " + module.table + " WHERE id = ? AND user_id = ?", id, userId.get());
@@ -131,6 +150,10 @@ public class ResumeApiServlet extends HttpServlet {
         String original = Paths.get(part.getSubmittedFileName()).getFileName().toString().replaceAll("[^a-zA-Z0-9._-]", "_");
         String filename = System.currentTimeMillis() + "-" + original;
         String root = getServletContext().getRealPath("/uploads/resume");
+        if (root == null) {
+            Json.error(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "上传目录不可用，请检查部署方式");
+            return;
+        }
         File dir = new File(root);
         if (!dir.exists() && !dir.mkdirs()) {
             Json.error(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "上传目录创建失败");
@@ -146,6 +169,74 @@ public class ResumeApiServlet extends HttpServlet {
         }
     }
 
+    private void uploadDocument(HttpServletRequest req, HttpServletResponse resp, long userId) throws IOException, ServletException {
+        Part part = req.getPart("file");
+        if (part == null || part.getSize() == 0) {
+            Json.error(resp, HttpServletResponse.SC_BAD_REQUEST, "请选择简历文件");
+            return;
+        }
+        String original = safeFilename(part.getSubmittedFileName());
+        String extension = extension(original);
+        if (!DOCUMENT_EXTENSIONS.contains(extension)) {
+            Json.error(resp, HttpServletResponse.SC_BAD_REQUEST, "简历文件仅支持 PDF、DOCX、TXT、PNG、JPG、JPEG、WEBP");
+            return;
+        }
+        String filename = System.currentTimeMillis() + "-" + original;
+        String root = getServletContext().getRealPath("/uploads/resume-documents/" + userId);
+        if (root == null) {
+            Json.error(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "上传目录不可用，请检查部署方式");
+            return;
+        }
+        File dir = new File(root);
+        if (!dir.exists() && !dir.mkdirs()) {
+            Json.error(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "上传目录创建失败");
+            return;
+        }
+        part.write(new File(dir, filename).getAbsolutePath());
+        String url = "/uploads/resume-documents/" + userId + "/" + filename;
+        try {
+            long id = Db.insert(
+                    "INSERT INTO resume_documents (user_id, original_filename, stored_filename, file_url, mime_type, file_size) VALUES (?, ?, ?, ?, ?, ?)",
+                    userId, original, filename, url, str(part.getContentType()), part.getSize());
+            Json.created(resp, Map.of("document", loadDocument(userId, id)));
+        } catch (SQLException e) {
+            Json.error(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
+    private void updateDocumentAnalysis(HttpServletRequest req, HttpServletResponse resp, long userId, long id) throws IOException, SQLException {
+        Map<String, Object> body = Json.body(req);
+        String parsedText = str(body.get("parsedText"));
+        Object analysis = body.get("analysis");
+        String analysisJson = analysis == null ? str(body.get("analysisJson")) : Json.MAPPER.writeValueAsString(analysis);
+        int updated = Db.update(
+                "UPDATE resume_documents SET parsed_text=?, analysis_json=? WHERE id=? AND user_id=?",
+                parsedText, analysisJson, id, userId);
+        if (updated == 0) {
+            Json.error(resp, HttpServletResponse.SC_NOT_FOUND, "简历附件不存在");
+            return;
+        }
+        Json.ok(resp, Map.of("document", loadDocument(userId, id)));
+    }
+
+    private void deleteDocument(HttpServletResponse resp, long userId, long id) throws IOException, SQLException {
+        Map<String, Object> existing = Db.one("SELECT file_url FROM resume_documents WHERE id=? AND user_id=?", id, userId).orElse(null);
+        if (existing == null) {
+            Json.error(resp, HttpServletResponse.SC_NOT_FOUND, "简历附件不存在");
+            return;
+        }
+        Db.update("DELETE FROM resume_documents WHERE id=? AND user_id=?", id, userId);
+        String fileUrl = str(existing.get("file_url"));
+        if (!fileUrl.isBlank()) {
+            String relative = fileUrl.replaceFirst("^/+", "");
+            String absolute = getServletContext().getRealPath("/" + relative);
+            if (absolute != null) {
+                new File(absolute).delete();
+            }
+        }
+        Json.ok(resp, Map.of("items", listDocuments(userId)));
+    }
+
     private Map<String, Object> loadResumePayload(long userId) throws SQLException {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("resume", loadResume(userId));
@@ -154,6 +245,7 @@ public class ResumeApiServlet extends HttpServlet {
         payload.put("projects", listModule(Module.PROJECTS, userId));
         payload.put("skills", listModule(Module.SKILLS, userId));
         payload.put("certificates", listModule(Module.CERTIFICATES, userId));
+        payload.put("documents", listDocuments(userId));
         return payload;
     }
 
@@ -164,6 +256,20 @@ public class ResumeApiServlet extends HttpServlet {
 
     private List<Map<String, Object>> listModule(Module module, long userId) throws SQLException {
         return Db.query("SELECT * FROM " + module.table + " WHERE user_id = ? ORDER BY sort_order ASC, id DESC", userId);
+    }
+
+    private List<Map<String, Object>> listDocuments(long userId) throws SQLException {
+        return Db.query(
+                "SELECT id, original_filename, file_url, mime_type, file_size, parsed_text, analysis_json, created_at " +
+                        "FROM resume_documents WHERE user_id = ? ORDER BY created_at DESC, id DESC",
+                userId);
+    }
+
+    private Map<String, Object> loadDocument(long userId, long id) throws SQLException {
+        return Db.one(
+                "SELECT id, original_filename, file_url, mime_type, file_size, parsed_text, analysis_json, created_at " +
+                        "FROM resume_documents WHERE user_id = ? AND id = ?",
+                userId, id).orElse(Map.of());
     }
 
     private void insertModule(Module module, long userId, Map<String, Object> body) throws SQLException {
@@ -245,6 +351,17 @@ public class ResumeApiServlet extends HttpServlet {
     private Object nullable(Object value) {
         String text = str(value);
         return text.isBlank() ? null : text;
+    }
+
+    private String safeFilename(String value) {
+        String original = value == null ? "resume" : Paths.get(value).getFileName().toString();
+        String cleaned = original.replaceAll("[^a-zA-Z0-9._\\-\\u4e00-\\u9fa5]", "_");
+        return cleaned.isBlank() ? "resume" : cleaned;
+    }
+
+    private String extension(String filename) {
+        int index = filename.lastIndexOf('.');
+        return index >= 0 ? filename.substring(index).toLowerCase() : "";
     }
 
     private int number(Object value) {

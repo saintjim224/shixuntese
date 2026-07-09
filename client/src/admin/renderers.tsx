@@ -7,7 +7,8 @@ export function renderApplicationStatus(value: Application['status']) {
 }
 
 export function renderRole(value: Role) {
-  return <Tag color={value === 'ADMIN' ? 'blue' : 'green'}>{roleText[value]}</Tag>;
+  const color = value === 'SUPER_ADMIN' ? 'gold' : value === 'ADMIN' ? 'blue' : 'green';
+  return <Tag color={color}>{roleText[value]}</Tag>;
 }
 
 export function renderUserStatus(value: AdminUser['status']) {

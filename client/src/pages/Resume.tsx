@@ -2,7 +2,7 @@ import ImgCrop from 'antd-img-crop';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { Alert, App, Button, Card, Collapse, Form, Input, InputNumber, List, Modal, Progress, Select, Space, Tag, Upload } from 'antd';
-import { Download, Edit3, Eye, Plus, Save, Trash2, Upload as UploadIcon } from 'lucide-react';
+import { Download, Edit3, Eye, FileSearch, Plus, Save, Trash2, Upload as UploadIcon, WandSparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { AuthContextValue } from '../App';
@@ -10,7 +10,8 @@ import { api, assetUrl } from '../api/client';
 import { ErrorBlock, LoadingBlock } from '../components/StateBlock';
 import { CITY_OPTIONS } from '../data/catalog';
 import { demoResumePayload, isBackendUnavailable } from '../demoSession';
-import type { ResumePayload } from '../types';
+import { saveRagResumeDraft } from '../ragContext';
+import type { ResumeAnalysis, ResumeDocument, ResumePayload } from '../types';
 
 type ResumeFormValues = {
   fullName: string;
@@ -56,7 +57,8 @@ const emptyPayload: ResumePayload = {
   experiences: [],
   projects: [],
   skills: [],
-  certificates: []
+  certificates: [],
+  documents: []
 };
 
 const moduleConfigs: ModuleConfig[] = [
@@ -126,6 +128,8 @@ export default function Resume({ auth }: { auth: AuthContextValue }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [documentUploading, setDocumentUploading] = useState(false);
+  const [latestAnalysis, setLatestAnalysis] = useState<ResumeAnalysis | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [error, setError] = useState('');
   const [form] = Form.useForm<ResumeFormValues>();
@@ -146,7 +150,7 @@ export default function Resume({ auth }: { auth: AuthContextValue }) {
           email: next.email || auth.user?.email || '',
           phone: next.phone || auth.user?.phone || '',
           gender: next.gender || '',
-          birthDate: String(next.birth_date || '').slice(0, 10),
+          birthDate: dateInputValue(next.birth_date),
           education: next.education || '',
           major: next.major || '',
           yearsExperience: next.years_experience || 0,
@@ -166,7 +170,7 @@ export default function Resume({ auth }: { auth: AuthContextValue }) {
             email: next.email || auth.user?.email || '',
             phone: next.phone || auth.user?.phone || '',
             gender: next.gender || '',
-            birthDate: String(next.birth_date || '').slice(0, 10),
+            birthDate: dateInputValue(next.birth_date),
             education: next.education || '',
             major: next.major || '',
             yearsExperience: next.years_experience || 0,
@@ -200,6 +204,13 @@ export default function Resume({ auth }: { auth: AuthContextValue }) {
     ];
     return Math.round((fields.filter(Boolean).length / fields.length) * 100);
   }, [auth.user, payload, watched]);
+
+  useEffect(() => {
+    if (!auth.user || loading) {
+      return;
+    }
+    saveRagResumeDraft(auth.user, form.getFieldsValue(), payload);
+  }, [auth.user, form, loading, payload, watched]);
 
   async function submit(values: ResumeFormValues) {
     setSaving(true);
@@ -253,6 +264,68 @@ export default function Resume({ auth }: { auth: AuthContextValue }) {
     }
   }
 
+  async function uploadResumeDocument(file: File) {
+    const uploadForm = new FormData();
+    uploadForm.append('file', file);
+    setDocumentUploading(true);
+    try {
+      const uploaded = await api.uploadResumeDocument(uploadForm);
+      setPayload((prev) => ({ ...prev, documents: [uploaded.document, ...(prev.documents || [])] }));
+      message.success('简历文档已上传');
+
+      const analyzeForm = new FormData();
+      analyzeForm.append('file', file);
+      const analysis = await api.rag.analyzeResume(analyzeForm);
+      setLatestAnalysis(analysis);
+      const saved = await api.updateResumeDocumentAnalysis(uploaded.document.id, {
+        parsedText: analysis.extractedText,
+        analysis
+      });
+      setPayload((prev) => ({
+        ...prev,
+        documents: (prev.documents || []).map((item) => (item.id === saved.document.id ? saved.document : item))
+      }));
+      message.success('简历分析完成');
+    } catch (err) {
+      const text = (err as Error).message;
+      if (isBackendUnavailable(err)) {
+        setError('');
+        message.warning('后端暂不可用，简历文档没有保存到服务器');
+      } else {
+        setError(text);
+      }
+    } finally {
+      setDocumentUploading(false);
+    }
+  }
+
+  async function deleteResumeDocument(id: number) {
+    try {
+      const result = await api.deleteResumeDocument(id);
+      setPayload((prev) => ({ ...prev, documents: result.items }));
+      message.success('简历文档已删除');
+    } catch (err) {
+      message.error((err as Error).message);
+    }
+  }
+
+  function applyAnalysis(analysis = latestAnalysis) {
+    if (!analysis) return;
+    const profile = analysis.profile || {};
+    const skills = (analysis.skills?.length ? analysis.skills : profile.skills || []) as string[];
+    form.setFieldsValue({
+      fullName: profile.fullName || form.getFieldValue('fullName'),
+      email: profile.email || form.getFieldValue('email'),
+      phone: profile.phone || form.getFieldValue('phone'),
+      education: profile.education || form.getFieldValue('education'),
+      major: profile.major || form.getFieldValue('major'),
+      expectedCity: profile.expectedCity || form.getFieldValue('expectedCity'),
+      skills: skills.length ? skills.join('、') : form.getFieldValue('skills'),
+      selfIntro: profile.selfIntro || form.getFieldValue('selfIntro')
+    });
+    message.success('已把分析结果回填到基础简历');
+  }
+
   async function exportPdf() {
     if (!previewRef.current) return;
     const canvas = await html2canvas(previewRef.current, { scale: 2, backgroundColor: '#ffffff' });
@@ -286,6 +359,7 @@ export default function Resume({ auth }: { auth: AuthContextValue }) {
       />
     )
   }));
+  const documents = payload.documents || [];
 
   return (
     <div className="resume-layout">
@@ -318,6 +392,61 @@ export default function Resume({ auth }: { auth: AuthContextValue }) {
           <Progress type="circle" percent={completeness} size={72} />
         </div>
         {error && <ErrorBlock message={error} />}
+        <section className="resume-document-panel">
+          <div className="resume-document-head">
+            <div>
+              <h2><FileSearch size={18} /> 简历文档</h2>
+              <p>上传 PDF、DOCX、TXT 或图片简历，可自动分析并用于职位投递。</p>
+            </div>
+            <Upload
+              accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp"
+              showUploadList={false}
+              beforeUpload={(file) => {
+                uploadResumeDocument(file);
+                return false;
+              }}
+            >
+              <Button type="primary" icon={<UploadIcon size={17} />} loading={documentUploading}>
+                上传并分析
+              </Button>
+            </Upload>
+          </div>
+          {latestAnalysis && (
+            <div className="resume-analysis-box">
+              <div>
+                <strong>{latestAnalysis.summary}</strong>
+                <Space wrap>
+                  {latestAnalysis.directions.map((item) => <Tag key={item} color="cyan">{item}</Tag>)}
+                  {latestAnalysis.skills.slice(0, 8).map((item) => <Tag key={item}>{item}</Tag>)}
+                </Space>
+              </div>
+              <Button icon={<WandSparkles size={16} />} onClick={() => applyAnalysis()}>
+                一键回填
+              </Button>
+            </div>
+          )}
+          <List
+            size="small"
+            dataSource={documents}
+            locale={{ emptyText: '还没有上传简历文档' }}
+            renderItem={(item: ResumeDocument) => {
+              const analysis = parseAnalysis(item);
+              return (
+                <List.Item
+                  actions={[
+                    analysis ? <Button key="fill" size="small" icon={<WandSparkles size={14} />} onClick={() => applyAnalysis(analysis)}>回填</Button> : null,
+                    <Button key="delete" size="small" danger icon={<Trash2 size={14} />} onClick={() => deleteResumeDocument(item.id)}>删除</Button>
+                  ].filter(Boolean)}
+                >
+                  <List.Item.Meta
+                    title={item.original_filename}
+                    description={analysis?.summary || `${Math.ceil((item.file_size || 0) / 1024)} KB · ${item.created_at || ''}`}
+                  />
+                </List.Item>
+              );
+            }}
+          />
+        </section>
         <Form form={form} layout="vertical" className="resume-form" onFinish={submit}>
           <Form.Item name="fullName" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
             <Input />
@@ -370,6 +499,36 @@ export default function Resume({ auth }: { auth: AuthContextValue }) {
       </div>
     </div>
   );
+}
+
+function parseAnalysis(document: ResumeDocument): ResumeAnalysis | null {
+  if (!document.analysis_json) return null;
+  try {
+    return JSON.parse(document.analysis_json) as ResumeAnalysis;
+  } catch {
+    return null;
+  }
+}
+
+function dateInputValue(value: unknown) {
+  if (!value) return '';
+  if (typeof value === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+      return value.slice(0, 10);
+    }
+    if (/^\d{10,13}$/.test(value)) {
+      return dateInputValue(Number(value));
+    }
+    return '';
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const millis = value < 10_000_000_000 ? value * 1000 : value;
+    const date = new Date(millis);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toISOString().slice(0, 10);
+    }
+  }
+  return '';
 }
 
 function ResumeModuleEditor({

@@ -3,11 +3,13 @@ import {
   Bell,
   BriefcaseBusiness,
   Building2,
+  Bot,
   FileText,
   House,
   LayoutDashboard,
   LogIn,
   LogOut,
+  MapPinned,
   Menu,
   Moon,
   Sun,
@@ -27,14 +29,16 @@ type HeaderProps = {
 const navItems = [
   { to: '/', label: '首页', icon: <House size={18} /> },
   { to: '/jobs', label: '职位', icon: <BriefcaseBusiness size={18} /> },
+  { to: '/map', label: '地图', icon: <MapPinned size={18} /> },
   { to: '/companies', label: '企业', icon: <Building2 size={18} /> },
+  { to: '/rag', label: '问答', icon: <Bot size={18} /> },
   { to: '/resume', label: '简历', icon: <FileText size={18} /> },
   { to: '/applications', label: '申请', icon: <UserRound size={18} /> }
 ];
 
 export default function Header({ auth, themeMode, onThemeToggle, mobileOpen, onMobileOpenChange }: HeaderProps) {
   const navigate = useNavigate();
-  const isAdmin = auth.user?.role === 'ADMIN';
+  const isAdmin = auth.user ? ['ADMIN', 'SUPER_ADMIN'].includes(auth.user.role) : false;
   const mobileNav = (
     <nav className="drawer-nav" aria-label="移动端导航">
       {navItems.map((item) => (

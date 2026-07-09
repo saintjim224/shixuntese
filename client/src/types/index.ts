@@ -1,4 +1,4 @@
-export type Role = 'APPLICANT' | 'ADMIN';
+export type Role = 'APPLICANT' | 'ADMIN' | 'SUPER_ADMIN';
 
 export interface User {
   id: number;
@@ -112,6 +112,51 @@ export interface ResumeCertificate {
   sort_order?: number;
 }
 
+export interface JobMatchResult {
+  jobId?: number;
+  title: string;
+  company?: string;
+  city?: string;
+  category?: string;
+  salary?: string;
+  score?: number;
+  reason?: string;
+}
+
+export interface ResumeAnalysis {
+  fileName: string;
+  extractedText: string;
+  summary: string;
+  profile: {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    education?: string;
+    major?: string;
+    expectedCity?: string;
+    skills?: string[];
+    selfIntro?: string;
+    [key: string]: unknown;
+  };
+  skills: string[];
+  directions: string[];
+  matches: JobMatchResult[];
+  suggestions: string[];
+  mode: string;
+  configured: boolean;
+}
+
+export interface ResumeDocument {
+  id: number;
+  original_filename: string;
+  file_url: string;
+  mime_type?: string;
+  file_size?: number;
+  parsed_text?: string;
+  analysis_json?: string;
+  created_at?: string;
+}
+
 export interface ResumePayload {
   resume: Resume;
   educations: ResumeEducation[];
@@ -119,6 +164,7 @@ export interface ResumePayload {
   projects: ResumeProject[];
   skills: ResumeSkill[];
   certificates: ResumeCertificate[];
+  documents?: ResumeDocument[];
 }
 
 export interface Application {
@@ -133,11 +179,26 @@ export interface Application {
   salary_max: number;
   company_name: string;
   company_logo?: string;
+  resume_document_id?: number;
+  resume_filename?: string;
+  resume_file_url?: string;
 }
 
 export interface StatBucket {
   name: string;
   value: number;
+}
+
+export interface CityCoordinate {
+  name: string;
+  lng: number;
+  lat: number;
+  provinceLevel?: boolean;
+}
+
+export interface CityJobStat extends CityCoordinate {
+  jobCount: number;
+  categories: StatBucket[];
 }
 
 export interface PlatformStats {
@@ -147,6 +208,69 @@ export interface PlatformStats {
   applicantCount: number;
   cities: StatBucket[];
   categories: StatBucket[];
+  coordinates?: CityCoordinate[];
+}
+
+export interface CityStats {
+  cities: StatBucket[];
+  categories: StatBucket[];
+  coordinates: CityCoordinate[];
+}
+
+export interface MapStats {
+  items: CityJobStat[];
+  totalJobs: number;
+  maxCount: number;
+}
+
+export interface RagSource {
+  id?: string;
+  title: string;
+  type?: string;
+  source?: string;
+  snippet?: string;
+  score?: number;
+}
+
+export interface RagChatRequest {
+  question: string;
+  topK?: number;
+  userContext?: RagUserContext;
+}
+
+export interface RagChatResponse {
+  answer: string;
+  sources: RagSource[];
+  mode?: 'llm' | 'fallback';
+  configured?: boolean;
+}
+
+export interface RagHealth {
+  status: string;
+  configured: boolean;
+  chatConfigured?: boolean;
+  embeddingConfigured?: boolean;
+  visionConfigured?: boolean;
+  documents: number;
+  embeddedDocuments?: number;
+  database?: boolean;
+  embeddingError?: string;
+}
+
+export interface RagUserContext {
+  user: Pick<User, 'id' | 'username' | 'role' | 'fullName' | 'email' | 'phone'>;
+  resume?: Record<string, unknown>;
+  resumeModules?: Record<string, Array<Record<string, unknown>>>;
+  resumeDocuments?: Array<Record<string, unknown>>;
+  applications?: Array<Record<string, unknown>>;
+}
+
+export interface VisionAnalyzeResponse {
+  fileName: string;
+  answer: string;
+  mode: string;
+  configured: boolean;
+  sources?: RagSource[];
 }
 
 export interface PagedResult<T> {

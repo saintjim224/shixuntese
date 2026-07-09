@@ -20,11 +20,11 @@
     <form method="post" action="${ctx}/manage/login" class="grid">
       <label class="field">
         <span>管理员账号</span>
-        <input name="username" autocomplete="username" required value="admin">
+        <input name="username" autocomplete="username" required value="Saintjim">
       </label>
       <label class="field">
         <span>密码</span>
-        <input name="password" type="password" autocomplete="current-password" required value="admin123">
+        <input name="password" type="password" autocomplete="current-password" required value="123456">
       </label>
       <button class="btn" type="submit">登录后台</button>
     </form>
@@ -32,4 +32,3 @@
 </main>
 </body>
 </html>
-

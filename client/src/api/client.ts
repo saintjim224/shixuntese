@@ -5,14 +5,23 @@ import type {
   AdminResumeDetail,
   AdminUser,
   Application,
+  CityStats,
   Company,
   CompanyListResult,
   Job,
+  MapStats,
   PagedResult,
   PlatformStats,
+  RagChatRequest,
+  RagChatResponse,
+  RagHealth,
+  RagSource,
+  ResumeAnalysis,
+  ResumeDocument,
   ResumePayload,
   SystemLog,
-  User
+  User,
+  VisionAnalyzeResponse
 } from '../types';
 
 function contextPath() {
@@ -21,6 +30,7 @@ function contextPath() {
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE || `${contextPath()}/api`;
+const RAG_BASE = (import.meta.env.VITE_RAG_BASE_URL || 'http://127.0.0.1:8010').replace(/\/$/, '');
 
 export function assetUrl(path?: string) {
   if (!path) return './assets/it-logo.png';
@@ -52,6 +62,29 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
+async function externalRequest<T>(url: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(init.headers);
+  if (!(init.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  const response = await fetch(url, {
+    ...init,
+    headers
+  });
+  const text = await response.text();
+  let data: unknown = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error('智能问答服务暂时不可用，请确认 Python RAG 服务已启动。');
+  }
+  if (!response.ok) {
+    const message = typeof data === 'object' && data && 'detail' in data ? String(data.detail || '') : '';
+    throw new Error(message || '请求失败');
+  }
+  return data as T;
+}
+
 export const api = {
   me: () => request<{ authenticated: boolean; user: User | Record<string, never> }>('/auth/me'),
   login: (payload: { username: string; password: string }) =>
@@ -63,18 +96,29 @@ export const api = {
     request<{ message: string }>('/auth/password', { method: 'PUT', body: JSON.stringify(payload) }),
   jobs: (params = '') => request<PagedResult<Job>>(`/jobs${params}`),
   job: (id: string) => request<{ job: Job; related: Job[] }>(`/jobs/${id}`),
-  apply: (id: string, message: string) =>
-    request<{ id: number; message: string }>(`/jobs/${id}/apply`, { method: 'POST', body: JSON.stringify({ message }) }),
+  apply: (id: string, payload: string | { message?: string; resumeDocumentId?: number | null }) => {
+    const body = typeof payload === 'string' ? { message: payload } : payload;
+    return request<{ id: number; message: string }>(`/jobs/${id}/apply`, { method: 'POST', body: JSON.stringify(body) });
+  },
   favoriteJob: (id: number | string) => request<{ message: string }>(`/jobs/${id}/favorite`, { method: 'POST' }),
   unfavoriteJob: (id: number | string) => request<{ message: string }>(`/jobs/${id}/favorite`, { method: 'DELETE' }),
   companies: (params = '') => request<CompanyListResult>(`/companies${params}`),
   company: (id: string) => request<{ company: Company; jobs: Job[]; recommended: Company[] }>(`/companies/${id}`),
   stats: () => request<PlatformStats>('/stats'),
+  cityStats: () => request<CityStats>('/stats/cities'),
+  mapStats: () => request<MapStats>('/stats/map'),
   resume: () => request<ResumePayload>('/resume'),
   saveResume: (payload: Record<string, unknown>) =>
     request<ResumePayload>('/resume', { method: 'PUT', body: JSON.stringify(payload) }),
   uploadPhoto: (form: FormData) =>
     request<{ photoUrl: string }>('/resume/photo', { method: 'POST', body: form }),
+  resumeDocuments: () => request<{ items: ResumeDocument[] }>('/resume/documents'),
+  uploadResumeDocument: (form: FormData) =>
+    request<{ document: ResumeDocument }>('/resume/documents', { method: 'POST', body: form }),
+  updateResumeDocumentAnalysis: (id: number, payload: { parsedText?: string; analysis?: ResumeAnalysis }) =>
+    request<{ document: ResumeDocument }>(`/resume/documents/${id}/analysis`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteResumeDocument: (id: number) =>
+    request<{ items: ResumeDocument[] }>(`/resume/documents/${id}`, { method: 'DELETE' }),
   resumeModule: (module: string) => request<{ items: unknown[] }>(`/resume/${module}`),
   createResumeModule: (module: string, payload: Record<string, unknown>) =>
     request<{ items: unknown[] }>(`/resume/${module}`, { method: 'POST', body: JSON.stringify(payload) }),
@@ -112,5 +156,16 @@ export const api = {
     toggleUser: (id: number) => request<{ message: string }>(`/admin/users/${id}/toggle`, { method: 'PATCH' }),
     deleteUser: (id: number) => request<{ message: string }>(`/admin/users/${id}`, { method: 'DELETE' }),
     logs: () => request<{ items: SystemLog[] }>('/admin/logs')
+  },
+  rag: {
+    health: () => externalRequest<RagHealth>(`${RAG_BASE}/health`),
+    sources: () => externalRequest<{ items: RagSource[]; total: number }>(`${RAG_BASE}/sources`),
+    rebuild: () => externalRequest<{ status: string; documents: number; embeddedDocuments?: number }>(`${RAG_BASE}/index/rebuild`, { method: 'POST' }),
+    chat: (payload: RagChatRequest) =>
+      externalRequest<RagChatResponse>(`${RAG_BASE}/chat`, { method: 'POST', body: JSON.stringify(payload) }),
+    analyzeResume: (form: FormData) =>
+      externalRequest<ResumeAnalysis>(`${RAG_BASE}/resume/analyze`, { method: 'POST', body: form }),
+    analyzeVision: (form: FormData) =>
+      externalRequest<VisionAnalyzeResponse>(`${RAG_BASE}/vision/analyze`, { method: 'POST', body: form })
   }
 };

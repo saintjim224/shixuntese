@@ -4,6 +4,7 @@ import zhCN from 'antd/locale/zh_CN';
 import { AnimatePresence, motion } from 'motion/react';
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { api } from './api/client';
+import FloatingRagAssistant from './components/FloatingRagAssistant';
 import Footer from './components/Footer';
 import Header from './components/Header';
 import { LoadingBlock } from './components/StateBlock';
@@ -15,6 +16,8 @@ import Home from './pages/Home';
 import JobDetail from './pages/JobDetail';
 import Jobs from './pages/Jobs';
 import LoginRegister from './pages/LoginRegister';
+import MapHeat from './pages/MapHeat';
+import RagChat from './pages/RagChat';
 import Resume from './pages/Resume';
 import type { User } from './types';
 
@@ -63,6 +66,10 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = themeMode;
   }, [themeMode]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname, location.search]);
 
   const auth = useMemo(() => ({ user, loading, refresh, logout }), [user, loading]);
 
@@ -119,8 +126,10 @@ export default function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/jobs" element={<Jobs />} />
                     <Route path="/jobs/:id" element={<JobDetail auth={auth} />} />
+                    <Route path="/map" element={<MapHeat />} />
                     <Route path="/companies" element={<Companies />} />
                     <Route path="/companies/:id" element={<CompanyDetail />} />
+                    <Route path="/rag" element={<RagChat auth={auth} />} />
                     <Route path="/login" element={<LoginRegister auth={auth} />} />
                     <Route path="/resume" element={<Resume auth={auth} />} />
                     <Route path="/applications" element={<Applications auth={auth} />} />
@@ -128,6 +137,7 @@ export default function App() {
                 </motion.div>
               </AnimatePresence>
             </main>
+            <FloatingRagAssistant auth={auth} />
             <Footer />
           </>
         )}
